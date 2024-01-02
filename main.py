@@ -1,4 +1,8 @@
 import sys
+
+
+
+import sys
 sys.path.append('morph')
 import morph
 from morph import *
@@ -8,9 +12,7 @@ import transform
 from transform import *
 
 #morph the source image to the target image
-def morph_images():
-    target_image_path = r"C:\Users\joeli\Dropbox\Data\face_image_data\facescape\2\models_reg\1_neutral.jpg"
-    source_image_path = r"C:\Users\joeli\Dropbox\Data\models_4k\light\m32_4k.png"
+def morph_images(source_image_path = r"C:\Users\joeli\Dropbox\Data\models_4k\light\m32_4k.png", target_image_path = r"C:\Users\joeli\Dropbox\Data\face_image_data\facescape\2\models_reg\1_neutral.jpg"):
 
     # Read the images into NumPy arrays
     target_image = cv2.imread(target_image_path)
@@ -47,9 +49,28 @@ def morph_images():
 
     plt.imshow(cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB))
     plt.title("Target image")
+    # Load and resize the masks
+    mask_dir = r"masks"
+    warped_mask_dir = r"warped_masks"
+    mask_paths = os.listdir(mask_dir)
+    masks = []
+    warped_masks = []
 
+    for mask_path in mask_paths:
+        mask = cv2.imread(os.path.join(mask_dir, mask_path), cv2.IMREAD_GRAYSCALE)
+        mask = cv2.resize(mask, (WIDTH, HEIGHT))
+        masks.append(mask)
 
-    return warped_source_image, target_image
+    # Warp each mask to align with the target image
+    for i, mask in enumerate(masks):
+        warped_mask = cv2.warpAffine(mask, transformation_matrices[i][0], (WIDTH, HEIGHT))
+        warped_masks.append(warped_mask)
+
+    # Save the warped masks
+    for i in range(len(warped_masks)):
+        cv2.imwrite(os.path.join(warped_mask_dir, mask_paths[i]), warped_masks[i])
+
+    return warped_source_image, target_image, warped_masks
 
 #encode the images into biophysical latent space
 def encode_images(warped_source_image, target_image):
@@ -138,7 +159,7 @@ def decode_target():
     pass
 
 if __name__ == '__main__':
-    warped_source_image, target_image = morph_images()
+    warped_source_image, target_image, warped_masks = morph_images()
     encode_images(warped_source_image, target_image)
 
     extract_masks(warped_source_image)
