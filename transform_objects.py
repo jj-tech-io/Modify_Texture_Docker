@@ -82,6 +82,8 @@ class SkinParameterAdjustmentApp:
     def load_images(self):
         original_image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
         original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
+        original_4k = original_image.copy()
+        modified_4k = original_4k.copy()
         original_image = cv2.resize(original_image, (self.WIDTH, self.HEIGHT))
         modified_image = original_image.copy()
 
@@ -109,6 +111,13 @@ class SkinParameterAdjustmentApp:
 
         self.parameter_maps_original, self.encode_time = encode(self.original_image.reshape(-1, 3) / 255.0)
 
+        self.original_4k = cv2.resize(original_4k, (4096, 4096))
+        self.modified_4k = cv2.resize(modified_4k, (4096, 4096))
+        self.mel_aged_4k = cv2.resize(mel_aged.reshape((self.WIDTH, self.HEIGHT)), (4096, 4096))
+        self.oxy_aged_4k = cv2.resize(oxy_aged.reshape((self.WIDTH, self.HEIGHT)), (4096, 4096))
+        self.parameter_maps_original_4k, self.encode_time_4k = encode(self.original_4k.reshape(-1, 3) / 255.0)
+
+
     def create_slider(self, parent, label, from_, to, resolution, default_value):
         frame = ttk.Frame(parent)
         label = ttk.Label(frame, text=label)
@@ -120,19 +129,52 @@ class SkinParameterAdjustmentApp:
         return slider
 
     def save_4k_image(self):
-        recovered_image = self.update_plot(
-            age_coef=age_coef_slider.get(),
-            global_scaling_maps=global_scaling_maps_slider.get(),
-            global_scaling_masks=global_scaling_masks_slider.get(),
-            scale_c_m=scaling_map1_slider.get(),
-            scale_c_h=scaling_map2_slider.get(),
-            scale_b_m=scaling_map3_slider.get(),
-            scale_b_h=scaling_map4_slider.get(),
-            scale_t=scaling_map5_slider.get(),
-            scale_mask_mel=scaling_mask1_slider.get(),
-            scale_mask_oxy_aged=scaling_mask2_slider.get()
-        )
-        plt.imsave("recovered_image2_4k.png", recovered_image)
+        age_coef = self.age_coef_slider.get()
+        global_scaling_maps = self.global_scaling_maps_slider.get()
+        global_scaling_masks = self.global_scaling_masks_slider.get()
+        scale_c_m = self.scaling_map1_slider.get()
+        scale_c_h = self.scaling_map2_slider.get()
+        scale_b_m = self.scaling_map3_slider.get()
+        scale_b_h = self.scaling_map4_slider.get()
+        scale_t = self.scaling_map5_slider.get()
+        scale_mask_mel = self.scaling_mask1_slider.get()
+        scale_mask_oxy_aged = self.scaling_mask2_slider.get()
+
+        # Apply scaling factors for the maps and masks
+        parameter_maps_changed = self.parameter_maps_original_4k.copy()
+        
+        # Update maps based on scaling factors
+        parameter_maps_changed[:, 0] = age_mel(parameter_maps_changed[:, 0], age_coef)
+        parameter_maps_changed[:, 0] += np.abs(self.mel_aged_4k.reshape(-1,)) * global_scaling_maps
+        parameter_maps_changed[:, 1] = age_hem(parameter_maps_changed[:, 1], age_coef)
+        parameter_maps_changed[:, 1] += np.abs(self.oxy_aged_4k.reshape(-1,)) * global_scaling_maps
+        parameter_maps_changed[:, 2] = age_mel(parameter_maps_changed[:, 2], age_coef)
+        
+        parameter_maps_changed[:, 0] *= scale_c_m
+        parameter_maps_changed[:, 1] *= scale_c_h
+        parameter_maps_changed[:, 2] *= scale_b_m
+        parameter_maps_changed[:, 3] *= scale_b_h
+        parameter_maps_changed[:, 4] *= scale_t
+        # Apply scaling factors for the masks
+        mel_aged_mask_scaled = self.mel_aged_4k.copy() * scale_mask_mel
+        mel_aged_mask_scaled = cv2.resize(mel_aged_mask_scaled, (4096, 4096))
+        oxy_aged_mask_scaled = self.oxy_aged_4k.copy() * scale_mask_oxy_aged
+        oxy_aged_mask_scaled = cv2.resize(oxy_aged_mask_scaled, (4096, 4096))
+
+        # Apply scaling factors for the masks
+        mel_aged_mask_scaled = self.mel_aged_4k.copy() * scale_mask_mel
+        oxy_aged_mask_scaled = self.oxy_aged_4k.copy() * scale_mask_oxy_aged
+
+        parameter_maps_changed[:, 0] += np.abs(mel_aged_mask_scaled.reshape(-1)) * global_scaling_masks
+        parameter_maps_changed[:, 1] += np.abs(oxy_aged_mask_scaled.reshape(-1)) * global_scaling_masks
+
+        # Decode the updated parameter maps to get the recovered image
+        recovered, decode_time = decode(parameter_maps_changed)
+        recovered = np.asarray(recovered).reshape((4096,4096, 3)) * 255
+
+        cv2.imwrite(r"modified/modified.png", cv2.cvtColor(recovered, cv2.COLOR_BGR2RGB))
+                
+        
 
     def update_plot(self):
         """
