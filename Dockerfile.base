@@ -1,0 +1,19 @@
+# Use an official Python runtime as a parent image
+FROM python:3.9
+
+# Set the working directory in the container to /app
+WORKDIR /app
+
+# Copy the requirements file into the container at /app
+COPY requirements.txt /app/
+
+# Install system dependencies required by OpenCV
+RUN apt-get update && \
+    apt-get install -y libgl1-mesa-glx
+
+# Install any needed packages specified in requirements.txt
+RUN python -m pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+## build the base image (python-base) to avoid installing the dependencies every time we build the image
+# docker build -f Dockerfile.base -t python-base .

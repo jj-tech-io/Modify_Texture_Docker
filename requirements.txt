@@ -1,0 +1,13 @@
+ipykernel
+pandas
+matplotlib
+scikit-learn
+keras
+Pillow
+colorspacious
+numpy
+opencv-python
+json5
+tensorflow
+jupyterlab
+mediapipe
