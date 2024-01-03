@@ -3,6 +3,7 @@ import sys
 import time
 import tkinter as tk
 from tkinter import ttk
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -251,16 +252,16 @@ class SkinParameterAdjustmentApp:
         self.frame_images = ttk.Frame(self.root)
         self.frame_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age Coefficient:", 0, 10, 0.01, 6)
-        self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "All Maps:", 0, 2, 0.01, 0.1)
-        self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "All Masks:", 0, 2, 0.01, 0.1)
-        self.scaling_map1_slider = self.create_slider(self.frame_sliders, "Scale Cm:", 0, 2, 0.01, 1)
-        self.scaling_map2_slider = self.create_slider(self.frame_sliders, "Scale Ch:", 0, 2, 0.01, 1)
-        self.scaling_map3_slider = self.create_slider(self.frame_sliders, "Scale Bm:", 0, 2, 0.01, 1)
-        self.scaling_map4_slider = self.create_slider(self.frame_sliders, "Scale Bh:", 0, 2, 0.01, 1)
-        self.scaling_map5_slider = self.create_slider(self.frame_sliders, "Scale T:", 0, 2, 0.01, 1)
-        self.scaling_mask1_slider = self.create_slider(self.frame_sliders, "Scale Melanin Mask:", 0, 2, 0.01, 0.1)
-        self.scaling_mask2_slider = self.create_slider(self.frame_sliders, "Scale oxy_aged Mask:", 0, 2, 0.01, 0.1)
+        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.01, 2)
+        self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "Map(s):", 0, 2, 0.01, 1)
+        self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "Mask(s):", 0, 2, 0.01, 0.5)
+        self.scaling_map1_slider = self.create_slider(self.frame_sliders, "Cm:", 0, 2, 0.01, 1)
+        self.scaling_map2_slider = self.create_slider(self.frame_sliders, "Ch:", 0, 2, 0.01, 1)
+        self.scaling_map3_slider = self.create_slider(self.frame_sliders, "Bm:", 0, 2, 0.01, 1)
+        self.scaling_map4_slider = self.create_slider(self.frame_sliders, "Bh:", 0, 2, 0.01, 1)
+        self.scaling_map5_slider = self.create_slider(self.frame_sliders, "T:", 0, 2, 0.01, 1)
+        self.scaling_mask1_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", 0, 2, 0.01, 0.1)
+        self.scaling_mask2_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", 0, 2, 0.01, 0.1)
 
         self.save_button = ttk.Button(self.frame_buttons, text="Save 4K Image", command=self.save_4k_image)
         self.save_button.pack(side=tk.RIGHT, padx=5, pady=5)
@@ -277,11 +278,8 @@ class SkinParameterAdjustmentApp:
         self.scaling_mask2_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
         # make window resizable
         self.root.resizable(True, True)
-
-        """
-        age_coef, global_scaling_maps, global_scaling_masks,
-                    scale_c_m, scale_c_h, scale_b_m, scale_b_h, scale_t, scale_mask_mel, scale_mask_oxy_aged
-        """
+        #black background
+        self.root.configure(background='black')
         self.update_plot()
 
     def run(self):

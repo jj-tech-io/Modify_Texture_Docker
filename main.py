@@ -8,6 +8,8 @@ from transform_objects import *
 import importlib
 import AE_Inference
 from AE_Inference import encode, decode, age_mel, age_hem, get_masks
+from tkinter import *
+from tkinter.ttk import *
 
 importlib.reload(morph)
 importlib.reload(transform_objects)
@@ -56,6 +58,8 @@ if __name__ == '__main__':
     example_texture_path = r"textures\m32_8k.png"
     # target_texture_path = r"textures\template_base_uv.png"
     target_texture_path = r"textures\1_neutral.jpg"
+    #textures\m53_4k.png
+    target_texture_path = r"textures\m53_4k.png"
     warped_example_image, target_image, example_image = morph_images(example_texture_path, target_texture_path)
     Cm, Bh = extract_masks(warped_example_image)
     fig, ax = plt.subplots(1, 5, figsize=(12, 4))
