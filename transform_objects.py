@@ -9,11 +9,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image, ImageTk
-from tensorflow.python.keras.models import load_model
-
+# from tensorflow.python.keras.models import load_model
+# from tensorflow.keras.models import load_model
+# from keras.saving.save import load_model
+from tensorflow.keras.models import load_model
 import CONFIG
 
 importlib.reload(CONFIG)
+sys.path.append(r"AE_Inference")
 import AE_Inference
 from AE_Inference import encode, decode, age_mel, age_hem
 importlib.reload(AE_Inference)
@@ -252,15 +255,15 @@ class SkinParameterAdjustmentApp:
         self.frame_images = ttk.Frame(self.root)
         self.frame_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.01, 2)
-        self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "Map(s):", 0, 2, 0.01, 1)
-        self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "Mask(s):", 0, 2, 0.01, 0.5)
+        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.01, 0)
+        self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "Map(s):", 0, 2, 0.01, 0)
+        self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "Mask(s):", 0, 2, 0.01, 0.25)
         self.scaling_map1_slider = self.create_slider(self.frame_sliders, "Cm:", 0, 2, 0.01, 1)
         self.scaling_map2_slider = self.create_slider(self.frame_sliders, "Ch:", 0, 2, 0.01, 1)
         self.scaling_map3_slider = self.create_slider(self.frame_sliders, "Bm:", 0, 2, 0.01, 1)
         self.scaling_map4_slider = self.create_slider(self.frame_sliders, "Bh:", 0, 2, 0.01, 1)
         self.scaling_map5_slider = self.create_slider(self.frame_sliders, "T:", 0, 2, 0.01, 1)
-        self.scaling_mask1_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", 0, 2, 0.01, 0.1)
+        self.scaling_mask1_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", 0, 2, 0.01, 0.2)
         self.scaling_mask2_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", 0, 2, 0.01, 0.1)
 
         self.save_button = ttk.Button(self.frame_buttons, text="Save 4K Image", command=self.save_4k_image)

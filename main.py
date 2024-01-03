@@ -1,5 +1,6 @@
+import os
+from pathlib import Path
 import sys
-
 sys.path.append('morph')
 import morph
 from morph import *
@@ -21,8 +22,8 @@ HEIGHT = 4096
 # morph the source image to the target image
 def morph_images(example_image_path, target_image_path):
     # Read the images into NumPy arrays
-    target_image = cv2.imread(target_image_path)
-    example_image = cv2.imread(example_image_path)
+    target_image = cv2.imread(target_image_path.as_posix())
+    example_image = cv2.imread(example_image_path.as_posix())
     # Check if the images are read correctly
     if example_image is None:
         print(f"Error: could not read source image {example_image_path}")
@@ -43,8 +44,7 @@ def morph_images(example_image_path, target_image_path):
 # extract masks from source
 def extract_masks(image):
     Cm, Ch, Bm, Bh, T = get_masks(image)
-    Bh = 1 - Bh
-
+    # Bh = 1 - Bh
     return Cm, Bh
 
 
@@ -55,12 +55,17 @@ def apply_transforms(target_image, mel_aged, oxy_aged):
 
 
 if __name__ == '__main__':
-    example_texture_path = r"textures\m32_8k.png"
+    working_dir = os.getcwd()
+    example_texture_path = r"textures/m32_8k.png"
+    example_texture_path = Path(working_dir, example_texture_path)
     # target_texture_path = r"textures\template_base_uv.png"
-    target_texture_path = r"textures\1_neutral.jpg"
+    target_texture_path = r"textures/1_neutral.jpg"
+    target_texture_path = Path(working_dir, target_texture_path)
+    print(f"example texture path: {example_texture_path}")
+    print(f"target texture path: {target_texture_path}")
     #textures\m53_4k.png
-    target_texture_path = r"textures\m53_4k.png"
-    warped_example_image, target_image, example_image = morph_images(example_texture_path, target_texture_path)
+    # target_texture_path = r"textures\m53_4k.png"
+    warped_example_image, target_image, example_image = morph_images(Path(example_texture_path), Path(target_texture_path))
     Cm, Bh = extract_masks(warped_example_image)
     fig, ax = plt.subplots(1, 5, figsize=(12, 4))
     ax[0].imshow(cv2.cvtColor(example_image, cv2.COLOR_BGR2RGB))
@@ -75,4 +80,6 @@ if __name__ == '__main__':
     ax[4].set_title("Bh")
     plt.tight_layout()
     plt.show()
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     apply_transforms(target_image, Cm, Bh)

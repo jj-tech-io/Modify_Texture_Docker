@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
-from keras.saving.save import load_model
+# from keras.saving.save import load_model
+from tensorflow.keras.models import load_model
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
 
@@ -21,10 +22,12 @@ def get_gpu_memory():
     # Assuming the output is in MiB, which is usual for nvidia-smi, convert to bytes
     memory_total = int(memory_total_str) * 1024 * 1024
     return memory_total
+working_dir = os.getcwd()
+encoder_path = os.path.join(working_dir, CONFIG.ENCODER_PATH)
+decoder_path = os.path.join(working_dir, CONFIG.DECODER_PATH)
 
-
-encoder = load_model(r"C:\Users\joeli\Dropbox\AE_MC\saved_ml_models\n75_l2_lr0.001_batch8192_weights0.2_0.1_0.7_epochs400\encoder.h5")
-decoder = load_model(r"C:\Users\joeli\Dropbox\AE_MC\saved_ml_models\n75_l2_lr0.001_batch8192_weights0.2_0.1_0.7_epochs400\decoder.h5")
+encoder = load_model(encoder_path)
+decoder = load_model(decoder_path)
 # encoder = load_model(CONFIG.ENCODER_PATH)
 # decoder = load_model(CONFIG.DECODER_PATH)
 
