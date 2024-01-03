@@ -57,16 +57,16 @@ def age_hem(v, t, r_Hbi=0.06, r_Hbe=0.1, zeta=0.5):
     v_prime = v-t*(r_Hbi+zeta*r_Hbe)*v
     return v_prime
 class SkinParameterAdjustmentApp:
-    def __init__(self, image_path, WIDTH=256, HEIGHT=256, mel_path=r"masks\Melanin_Age_Mask_filled_warped.png", oxy_aged_path=r"masks\oxy_deoxy_mask_filled_warped_best.png"):
+    def __init__(self, image_path, WIDTH=256, HEIGHT=256, mel_aged_path=r"warped_masks\Melanin_Age_Mask_filled_warped.png", oxy_aged_path=r"warped_masks\oxy_deoxy_mask_filled_warped_best.png"):
         self.original_label = None
         self.modified_label = None
         self.encoder = None
         self.decoder = None
         self.image_path = image_path  # Define image_path as an attribute
-        self.mel_path = mel_path
+        self.mel_aged_path = mel_aged_path
         self.oxy_aged_path = oxy_aged_path
-        self.WIDTH = WIDTH
-        self.HEIGHT = HEIGHT
+        self.WIDTH = 4096//4
+        self.HEIGHT = 4096//4
         self.load_models()
         self.load_images()
         self.init_app()
@@ -81,18 +81,23 @@ class SkinParameterAdjustmentApp:
 
     def load_images(self):
         original_image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
+        if original_image is None:
+            raise FileNotFoundError(f"Cannot load image at {self.image_path}")
         original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
         original_4k = original_image.copy()
         modified_4k = original_4k.copy()
         original_image = cv2.resize(original_image, (self.WIDTH, self.HEIGHT))
         modified_image = original_image.copy()
 
-
-        mel_aged = cv2.imread(self.mel_path, cv2.IMREAD_GRAYSCALE)
+        mel_aged = cv2.imread(self.mel_aged_path, cv2.IMREAD_GRAYSCALE)
+        if mel_aged is None:
+            raise FileNotFoundError(f"Cannot load image at {self.mel_aged_path}")
         mel_aged = cv2.resize(mel_aged, (self.WIDTH, self.HEIGHT))
         mel_aged = (mel_aged - np.min(mel_aged))/(np.max(mel_aged) - np.min(mel_aged))
 
         oxy_aged = cv2.imread(self.oxy_aged_path, cv2.IMREAD_GRAYSCALE)
+        if oxy_aged is None:
+            raise FileNotFoundError(f"Cannot load image at {self.oxy_aged_path}")
         oxy_aged = cv2.resize(oxy_aged, (self.WIDTH, self.HEIGHT))
         oxy_aged = cv2.bitwise_not(oxy_aged)
         oxy_aged = cv2.GaussianBlur(oxy_aged, (15, 15), 0)
