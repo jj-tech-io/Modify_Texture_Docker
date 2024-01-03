@@ -50,8 +50,8 @@ def get_extended_landmarks(landmarks, image_shape):
 
 def warp_image(target, source, landmarks1, landmarks2):
     # Extend landmarks with boundary and convex hull points
-    landmarks1_extended = get_extended_landmarks(landmarks1, target.shape)
-    landmarks2_extended = get_extended_landmarks(landmarks2, source.shape)
+    landmarks1_extended = get_extended_landmarks(landmarks1, target.shape)[:-2]
+    landmarks2_extended = get_extended_landmarks(landmarks2, source.shape)[:-2]
     # landmarks1_extended = landmarks1
     # landmarks2_extended = landmarks2
     # Compute Delaunay Triangulation for the extended landmarks

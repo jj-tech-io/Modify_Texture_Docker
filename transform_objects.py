@@ -27,8 +27,13 @@ class SkinParameterAdjustmentApp:
         self.image = image
         self.mel_aged = mel_aged
         self.oxy_aged = oxy_aged
+<<<<<<< Updated upstream
         self.WIDTH = 512
         self.HEIGHT = 512
+=======
+        self.WIDTH = 1024
+        self.HEIGHT = 1024
+>>>>>>> Stashed changes
         self.load_models()
         self.load_images()
         self.init_app()
@@ -160,9 +165,15 @@ class SkinParameterAdjustmentApp:
         recovered = np.asarray(recovered).reshape((4096, 4096, 3)) * 255
 
         cv2.imwrite(r"modified/modified.png", cv2.cvtColor(recovered, cv2.COLOR_BGR2RGB))
+<<<<<<< Updated upstream
         self.WIDTH = 512
         self.HEIGHT = 512
         self.load_images()
+=======
+        self.WIDTH = 1024
+        self.HEIGHT = 1024
+        self.load_images() 
+>>>>>>> Stashed changes
 
     def update_plot(self):
         age_coef = self.age_coef_slider.get()
@@ -218,6 +229,7 @@ class SkinParameterAdjustmentApp:
             plt.imshow(modified)
             plt.show()
             modified *= 255
+<<<<<<< Updated upstream
         try:
             original_pil = Image.fromarray(np.uint8(original))
             modified_pil = Image.fromarray(np.uint8(modified))
@@ -227,6 +239,14 @@ class SkinParameterAdjustmentApp:
         original_photo = ImageTk.PhotoImage(original_pil.resize((512, 512)))
         modified_photo = ImageTk.PhotoImage(modified_pil.resize((512, 512)))
 
+=======
+
+        original_pil = Image.fromarray(np.uint8(original))
+        modified_pil = Image.fromarray(np.uint8(modified))
+        original_photo = ImageTk.PhotoImage(original_pil.resize((1024, 1024)))
+        modified_photo = ImageTk.PhotoImage(modified_pil.resize((1024, 1024)))
+    
+>>>>>>> Stashed changes
         if self.original_label is None:
             self.original_label = ttk.Label(self.frame_images, image=original_photo)
             self.original_label.image = original_photo
