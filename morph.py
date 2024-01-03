@@ -1,44 +1,9 @@
-from scipy.spatial import Delaunay
-import cv2
-import numpy as np
-import mediapipe as mp
-import skimage
-from mediapipe.python.solutions import drawing_utils as mp_drawing
-from mediapipe.python.solutions import face_mesh as mp_face_mesh
-import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt
-import os
-import json
-import cv2
-import numpy as np
-import mediapipe as mp
-import skimage
-from skimage.transform import PiecewiseAffineTransform, warp
-import cv2
-import mediapipe as mp
-import skimage
-from skimage.transform import PiecewiseAffineTransform, warp
-import numpy as np
-import matplotlib.pyplot as plt
-import PIL.Image as Image
-import mediapipe as mp
-from mediapipe.python.solutions import drawing_utils as mp_drawing
-from mediapipe.python.solutions import face_mesh as mp_face_mesh
-
-import imgaug.augmenters as iaa
-import random
-import re
-import os
-import shutil
-
+import sys
 
 from scipy.spatial import Delaunay
 import cv2
 import numpy as np
 import mediapipe as mp
-import skimage
-from mediapipe.python.solutions import drawing_utils as mp_drawing
-from mediapipe.python.solutions import face_mesh as mp_face_mesh
 import matplotlib.pyplot as plt
 
 def get_landmarks(image):
@@ -54,29 +19,7 @@ def get_landmarks(image):
                 x, y = int(landmark.x * image.shape[1]), int(landmark.y * image.shape[0])
                 landmarks.append((x, y))
     return np.array(landmarks)
-# def get_extended_landmarks(landmarks, image_shape):
-#     # Calculate the convex hull of the original landmarks
-#     hull = cv2.convexHull(landmarks)
-    
-#     # Include additional points around the boundary of the convex hull
-#     boundary_points = np.array([
-#         [0, 0],
-#         [image_shape[1] // 2, 0],
-#         [image_shape[1] - 1, 0],
-#         [image_shape[1] - 1, image_shape[0] // 2],
-#         [image_shape[1] - 1, image_shape[0] - 1],
-#         [image_shape[1] // 2, image_shape[0] - 1],
-#         [0, image_shape[0] - 1],
-#         [0, image_shape[0] // 2]
-#     ])
-    
-#     # Combine the original landmarks with the boundary points
-#     extended_landmarks = np.vstack((landmarks, boundary_points))
-    
-#     # Include the points of the convex hull
-#     extended_landmarks = np.vstack((extended_landmarks, hull.squeeze()))
-    
-#     return extended_landmarks
+
 
 def get_extended_landmarks(landmarks, image_shape):
     # Calculate the convex hull of the original landmarks

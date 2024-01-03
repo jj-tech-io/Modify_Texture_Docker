@@ -1,18 +1,22 @@
 import sys
+
 sys.path.append('morph')
 import morph
 from morph import *
-import cv2
-
 import transform_objects
 from transform_objects import *
-import generate_masks
-from generate_masks import *
+import importlib
+import AE_Inference
+from AE_Inference import encode, decode, age_mel, age_hem, get_masks
 
+importlib.reload(morph)
+importlib.reload(transform_objects)
 
 WIDTH = 4096
 HEIGHT = 4096
-#morph the source image to the target image
+
+
+# morph the source image to the target image
 def morph_images(example_image_path, target_image_path):
     # Read the images into NumPy arrays
     target_image = cv2.imread(target_image_path)
@@ -29,16 +33,20 @@ def morph_images(example_image_path, target_image_path):
     example_image = cv2.resize(example_image, (WIDTH, HEIGHT))
     landmarks1 = get_landmarks(example_image)
     landmarks2 = get_landmarks(target_image)
-    warped_example_image, delaunay, transformation_matrices = warp_image(example_image, target_image, landmarks1, landmarks2)
+    warped_example_image, delaunay, transformation_matrices = warp_image(example_image, target_image, landmarks1,
+                                                                         landmarks2)
     return warped_example_image, target_image, example_image
 
 
-#extract masks from source
-def extract_masks(image_path):
-    Cm, Ch, Bm, Bh, T = get_masks(image_path)
+# extract masks from source
+def extract_masks(image):
+    Cm, Ch, Bm, Bh, T = get_masks(image)
+    Bh = 1 - Bh
+
     return Cm, Bh
 
-#apply masks and transformations to target's latent space
+
+# apply masks and transformations to target's latent space
 def apply_transforms(target_image, mel_aged, oxy_aged):
     app = SkinParameterAdjustmentApp(image=target_image, mel_aged=mel_aged, oxy_aged=oxy_aged)
     app.run()
@@ -46,6 +54,7 @@ def apply_transforms(target_image, mel_aged, oxy_aged):
 
 if __name__ == '__main__':
     example_texture_path = r"textures\m32_8k.png"
+    # target_texture_path = r"textures\template_base_uv.png"
     target_texture_path = r"textures\1_neutral.jpg"
     warped_example_image, target_image, example_image = morph_images(example_texture_path, target_texture_path)
     Cm, Bh = extract_masks(warped_example_image)
