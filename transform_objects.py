@@ -57,7 +57,7 @@ def age_hem(v, t, r_Hbi=0.06, r_Hbe=0.1, zeta=0.5):
     v_prime = v-t*(r_Hbi+zeta*r_Hbe)*v
     return v_prime
 class SkinParameterAdjustmentApp:
-    def __init__(self, image_path, WIDTH=256, HEIGHT=256, mel_aged_path=r"warped_masks\Melanin_Age_Mask_filled_warped.png", oxy_aged_path=r"warped_masks\oxy_deoxy_mask_filled_warped_best.png"):
+    def __init__(self, image_path, WIDTH, HEIGHT, mel_aged_path, oxy_aged_path):
         self.original_label = None
         self.modified_label = None
         self.encoder = None
@@ -112,6 +112,7 @@ class SkinParameterAdjustmentApp:
         self.mel_aged = mel_aged
         self.oxy_aged = oxy_aged
         self.parameter_maps_original = parameter_maps_original
+        
 
 
         self.parameter_maps_original, self.encode_time = encode(self.original_image.reshape(-1, 3) / 255.0)
@@ -146,7 +147,7 @@ class SkinParameterAdjustmentApp:
         scale_mask_oxy_aged = self.scaling_mask2_slider.get()
 
         # Apply scaling factors for the maps and masks
-        parameter_maps_changed = self.parameter_maps_original_4k.copy()
+        parameter_maps_changed, encode_time = encode(self.original_4k.reshape(-1, 3) / 255.0)
         
         # Update maps based on scaling factors
         parameter_maps_changed[:, 0] = age_mel(parameter_maps_changed[:, 0], age_coef)
@@ -176,7 +177,7 @@ class SkinParameterAdjustmentApp:
         # Decode the updated parameter maps to get the recovered image
         recovered, decode_time = decode(parameter_maps_changed)
         recovered = np.asarray(recovered).reshape((4096,4096, 3)) * 255
-
+        
         cv2.imwrite(r"modified/modified.png", cv2.cvtColor(recovered, cv2.COLOR_BGR2RGB))
                 
         
@@ -206,14 +207,15 @@ class SkinParameterAdjustmentApp:
         scale_mask_oxy_aged = self.scaling_mask2_slider.get()
 
         # Apply scaling factors for the maps and masks
-        parameter_maps_changed = self.parameter_maps_original.copy()
-        
+        parameter_maps_changed, encode_time = encode(self.original_image.reshape(-1, 3) / 255.0)
+        mel_aged_changed = self.mel_aged.copy()
+        oxy_aged_changed = self.oxy_aged.copy()
         # Update maps based on scaling factors
-        parameter_maps_changed[:, 0] = age_mel(self.parameter_maps_original[:, 0], age_coef)
-        parameter_maps_changed[:, 0] += np.abs(self.mel_aged.reshape(-1,)) * global_scaling_maps
-        parameter_maps_changed[:, 1] = age_hem(self.parameter_maps_original[:, 1], age_coef)
-        parameter_maps_changed[:, 1] += np.abs(self.oxy_aged.reshape(-1,)) * global_scaling_maps
-        parameter_maps_changed[:, 2] = age_mel(self.parameter_maps_original[:, 2], age_coef)
+        parameter_maps_changed[:, 0] = age_mel(parameter_maps_changed[:, 0], age_coef)
+        parameter_maps_changed[:, 0] += np.abs(mel_aged_changed.reshape(-1,)) * global_scaling_maps
+        parameter_maps_changed[:, 1] = age_hem(parameter_maps_changed[:, 1], age_coef)
+        parameter_maps_changed[:, 1] += np.abs(oxy_aged_changed.reshape(-1,)) * global_scaling_maps
+        parameter_maps_changed[:, 2] = age_mel(parameter_maps_changed[:, 2], age_coef)
         
         parameter_maps_changed[:, 0] *= scale_c_m
         parameter_maps_changed[:, 1] *= scale_c_h
@@ -222,8 +224,8 @@ class SkinParameterAdjustmentApp:
         parameter_maps_changed[:, 4] *= scale_t
 
         # Apply scaling factors for the masks
-        mel_aged_mask_scaled = self.mel_aged.copy() * scale_mask_mel
-        oxy_aged_mask_scaled = self.oxy_aged.copy() * scale_mask_oxy_aged
+        mel_aged_mask_scaled = mel_aged_changed * scale_mask_mel
+        oxy_aged_mask_scaled = oxy_aged_changed * scale_mask_oxy_aged
 
         parameter_maps_changed[:, 0] += np.abs(mel_aged_mask_scaled) * global_scaling_masks
         parameter_maps_changed[:, 1] += np.abs(oxy_aged_mask_scaled) * global_scaling_masks
@@ -292,6 +294,9 @@ class SkinParameterAdjustmentApp:
         self.scaling_map5_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
         self.scaling_mask1_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
         self.scaling_mask2_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
+        #make window resizable
+        self.root.resizable(True, True)
+        
         """
         age_coef, global_scaling_maps, global_scaling_masks,
                     scale_c_m, scale_c_h, scale_b_m, scale_b_h, scale_t, scale_mask_mel, scale_mask_oxy_aged
@@ -302,6 +307,6 @@ class SkinParameterAdjustmentApp:
         self.root.mainloop()
 
 if __name__ == '__main__':
-    app = SkinParameterAdjustmentApp(image_path=r"m53_4k.png")
+    app = SkinParameterAdjustmentApp(image_path=r"m53_4k.png", WIDTH=128, HEIGHT=128, mel_aged_path=r"warped_masks\Melanin_Age_Mask_filled_warped.png", oxy_aged_path=r"warped_masks\oxy_deoxy_mask_filled_warped_best.png")
 
     app.run()

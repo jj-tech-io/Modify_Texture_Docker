@@ -7,9 +7,13 @@ import cv2
 import transform_objects
 from transform_objects import *
 #make model paths global constants
+TARGET= r"m32_4k.png"
+SOURCE = r"1_neutral.jpg"
+#switch
 SOURCE = r"m32_4k.png"
-TARGET = r"1_neutral.jpg"
-
+TARGET= r"1_neutral.jpg"
+WIDTH = 4096
+HEIGHT = 4096
 #morph the source image to the target image
 def morph_images(source_image_path = SOURCE, target_image_path = TARGET):
 
@@ -23,22 +27,14 @@ def morph_images(source_image_path = SOURCE, target_image_path = TARGET):
         # Handle the error, for example by exiting the script
         sys.exit()
 
-    # Define the new width and height
-    WIDTH = 4096
-    HEIGHT = 4096
-
     # Resize the images
     target_image = cv2.resize(target_image, (WIDTH, HEIGHT))
     source_image = cv2.resize(source_image, (WIDTH, HEIGHT))
-
     landmarks1 = get_landmarks(source_image)
     landmarks2 = get_landmarks(target_image)
-
     # Warp source_image to align with target_image
     warped_source_image, delaunay, transformation_matrices = warp_image(source_image, target_image, landmarks1, landmarks2)
-
     warped_landmarks1 = get_landmarks(warped_source_image)
-
     # plt.imshow(cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB))
     # plt.title("Source image")
     # plt.show()
@@ -48,27 +44,22 @@ def morph_images(source_image_path = SOURCE, target_image_path = TARGET):
     # plt.imshow(cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB))
     # plt.title("Target image")
     # plt.show()
+
     # Load and resize the masks
     mask_dir = r"masks"
     warped_mask_dir = r"warped_masks"
     mask_paths = os.listdir(mask_dir)
     masks = []
     warped_masks = []
-
     for mask_path in mask_paths:
         mask = cv2.imread(os.path.join(mask_dir, mask_path), cv2.IMREAD_GRAYSCALE)
         mask = cv2.resize(mask, (WIDTH, HEIGHT))
         masks.append(mask)
-
     # Warp each mask to align with the target image
     for i, mask in enumerate(masks):
         warped_mask = apply_transformations_to_single_channel_image(mask, transformation_matrices)
         warped_masks.append(warped_mask)
-
-    # Save the warped masks
-    for i in range(len(warped_masks)):
-        cv2.imwrite(os.path.join(warped_mask_dir, mask_paths[i]), warped_masks[i])
-
+        cv2.imwrite(os.path.join(warped_mask_dir, mask_paths[i]), warped_mask)
     return warped_source_image, target_image, warped_masks
 
 #encode the images into biophysical latent space
@@ -85,8 +76,7 @@ def apply_transforms(target_image):
     #save the target image
     path = r"warped_images/im1.png"
     cv2.imwrite(path, target_image)
-    app = SkinParameterAdjustmentApp(image_path=path)
-
+    app = SkinParameterAdjustmentApp(image_path=path,WIDTH=128, HEIGHT=128, mel_aged_path=r"warped_masks\Melanin_Age_Mask_filled_warped.png", oxy_aged_path=r"warped_masks\oxy_deoxy_mask_filled_warped_best.png")
     app.run()
 
 #decode the target image
