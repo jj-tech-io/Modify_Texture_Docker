@@ -184,10 +184,8 @@ if __name__ == '__main__':
     # target_image_path = r"C:\Users\joeli\Dropbox\Data\models_4k\light\m32_4k.png"
     # source_image_path = r"C:\Users\joeli\Dropbox\Data\face_image_data\facescape\2\models_reg\1_neutral.jpg"
     #switch
-    target_image_path = r"C:\Users\joeli\Dropbox\Data\face_image_data\facescape\2\models_reg\1_neutral.jpg"
-    source_image_path = r"C:\Users\joeli\Dropbox\Data\models_4k\light\m32_4k.png"
-    source_image_path = r"m32_4k.png"
-    target_image_path = r"1_neutral.jpg"
+    source_image_path = r"textures\m32_8k.png"
+    target_image_path = r"textures\1_neutral.jpg"
     # Read the images into NumPy arrays
     target_image = cv2.imread(target_image_path)
     source_image = cv2.imread(source_image_path)
@@ -224,7 +222,7 @@ if __name__ == '__main__':
     plt.title("Target image")
     plt.show()
 
-    mel = r"masks\Melanin_Age_Mask_filled_warped.png"
+    mel = r"masks\Cm.png"
     mel = cv2.imread(mel, cv2.IMREAD_GRAYSCALE)
     mel = cv2.resize(mel, (WIDTH, HEIGHT))
     plt.imshow(mel)
@@ -236,7 +234,7 @@ if __name__ == '__main__':
     plt.title("Mel warped")
     plt.show()
 
-    oxy = r"masks\oxy_deoxy_mask_filled_warped_best.png"
+    oxy = r"masks\Bh.png"
     oxy = cv2.imread(oxy, cv2.IMREAD_GRAYSCALE)
     oxy = cv2.resize(oxy, (WIDTH, HEIGHT))
     plt.imshow(oxy)

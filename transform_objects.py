@@ -11,7 +11,20 @@ import importlib
 importlib.reload(CONFIG)
 decoder = load_model(CONFIG.DECODER_PATH)
 encoder = load_model(CONFIG.ENCODER_PATH)
+physical_devices = tf.config.list_physical_devices('GPU')
+if len(physical_devices) > 0:
+    for device in physical_devices:
+        print("Device:", device)
+else:
+    print("No GPU devices found.")
 
+# Set tf device to GPU
+tf.config.set_visible_devices(physical_devices[0], 'GPU')
+visible_devices = tf.config.get_visible_devices()
+device = visible_devices[0]
+
+# Print the number of available GPUs
+print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 def encode(img):
     image = np.asarray(img).reshape(-1,3)
     # pred_maps = encoder.predict(image)
@@ -57,16 +70,16 @@ def age_hem(v, t, r_Hbi=0.06, r_Hbe=0.1, zeta=0.5):
     v_prime = v-t*(r_Hbi+zeta*r_Hbe)*v
     return v_prime
 class SkinParameterAdjustmentApp:
-    def __init__(self, image_path, WIDTH, HEIGHT, mel_aged_path, oxy_aged_path):
+    def __init__(self, image, mel_aged, oxy_aged):
         self.original_label = None
         self.modified_label = None
         self.encoder = None
         self.decoder = None
-        self.image_path = image_path  # Define image_path as an attribute
-        self.mel_aged_path = mel_aged_path
-        self.oxy_aged_path = oxy_aged_path
-        self.WIDTH = 4096//4
-        self.HEIGHT = 4096//4
+        self.image = image 
+        self.mel_aged = mel_aged
+        self.oxy_aged = oxy_aged
+        self.WIDTH = 128
+        self.HEIGHT = 128
         self.load_models()
         self.load_images()
         self.init_app()
@@ -80,24 +93,33 @@ class SkinParameterAdjustmentApp:
         self.encoder = load_model(CONFIG.ENCODER_PATH)
 
     def load_images(self):
-        original_image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
-        if original_image is None:
-            raise FileNotFoundError(f"Cannot load image at {self.image_path}")
-        original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
-        original_4k = original_image.copy()
-        modified_4k = original_4k.copy()
+        original_image = None
+        mel_aged = None
+        oxy_aged = None
+        if type(self.image) == str:
+            original_image = cv2.imread(self.image, cv2.IMREAD_COLOR)
+        else:
+            original_image = self.image
+        if type(self.mel_aged) == str:
+            mel_aged = cv2.imread(self.mel_aged, cv2.IMREAD_GRAYSCALE)
+        else:
+            mel_aged = self.mel_aged
+        if type(self.oxy_aged) == str:
+            oxy_aged = cv2.imread(self.oxy_aged, cv2.IMREAD_GRAYSCALE)
+            
+        else:
+            oxy_aged = self.oxy_aged
+        if self.image is None or self.mel_aged is None or self.oxy_aged is None:
+            print(f"Error: read [image, mel_aged, oxy_aged] = [{self.image}, {self.mel_aged}, {self.oxy_aged}]")
+            sys.exit()
+
+        original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB).astype(np.float32)
+
+        original_4k = original_image.copy().astype(np.float32)
+        modified_4k = original_4k.copy().astype(np.float32)
         original_image = cv2.resize(original_image, (self.WIDTH, self.HEIGHT))
         modified_image = original_image.copy()
-
-        mel_aged = cv2.imread(self.mel_aged_path, cv2.IMREAD_GRAYSCALE)
-        if mel_aged is None:
-            raise FileNotFoundError(f"Cannot load image at {self.mel_aged_path}")
         mel_aged = cv2.resize(mel_aged, (self.WIDTH, self.HEIGHT))
-        mel_aged = (mel_aged - np.min(mel_aged))/(np.max(mel_aged) - np.min(mel_aged))
-
-        oxy_aged = cv2.imread(self.oxy_aged_path, cv2.IMREAD_GRAYSCALE)
-        if oxy_aged is None:
-            raise FileNotFoundError(f"Cannot load image at {self.oxy_aged_path}")
         oxy_aged = cv2.resize(oxy_aged, (self.WIDTH, self.HEIGHT))
         oxy_aged = cv2.bitwise_not(oxy_aged)
         oxy_aged = cv2.GaussianBlur(oxy_aged, (15, 15), 0)
@@ -107,22 +129,21 @@ class SkinParameterAdjustmentApp:
         mel_aged = mel_aged.reshape(-1,)
         oxy_aged = oxy_aged.reshape(-1,)
         parameter_maps_original, encode_time = encode(original_image.reshape(-1, 3) / 255.0)
+        print(f"original image shape: {original_image.shape} dtype: {original_image.dtype} max: {np.max(original_image)} min: {np.min(original_image)}")
+        print(f"modified image shape: {modified_image.shape} dtype: {modified_image.dtype} max: {np.max(modified_image)} min: {np.min(modified_image)}")
+        print(f"mel_aged shape: {mel_aged.shape} dtype: {mel_aged.dtype} max: {np.max(mel_aged)} min: {np.min(mel_aged)}")
+        print(f"oxy_aged shape: {oxy_aged.shape} dtype: {oxy_aged.dtype}  max: {np.max(oxy_aged)} min: {np.min(oxy_aged)}")
         self.original_image = original_image
         self.modified_image = modified_image
         self.mel_aged = mel_aged
         self.oxy_aged = oxy_aged
         self.parameter_maps_original = parameter_maps_original
-        
-
-
         self.parameter_maps_original, self.encode_time = encode(self.original_image.reshape(-1, 3) / 255.0)
-
-        self.original_4k = cv2.resize(original_4k, (4096, 4096))
-        self.modified_4k = cv2.resize(modified_4k, (4096, 4096))
-        self.mel_aged_4k = cv2.resize(mel_aged.reshape((self.WIDTH, self.HEIGHT)), (4096, 4096))
-        self.oxy_aged_4k = cv2.resize(oxy_aged.reshape((self.WIDTH, self.HEIGHT)), (4096, 4096))
+        self.original_4k = cv2.resize(original_4k, (self.WIDTH, self.WIDTH))
+        self.modified_4k = cv2.resize(modified_4k, (self.WIDTH, self.WIDTH))
+        self.mel_aged_4k = cv2.resize(mel_aged.reshape((self.WIDTH, self.HEIGHT)), (self.WIDTH, self.WIDTH))
+        self.oxy_aged_4k = cv2.resize(oxy_aged.reshape((self.WIDTH, self.HEIGHT)), (self.WIDTH, self.WIDTH))
         self.parameter_maps_original_4k, self.encode_time_4k = encode(self.original_4k.reshape(-1, 3) / 255.0)
-
 
     def create_slider(self, parent, label, from_, to, resolution, default_value):
         frame = ttk.Frame(parent)
@@ -135,6 +156,9 @@ class SkinParameterAdjustmentApp:
         return slider
 
     def save_4k_image(self):
+        self.WIDTH = 4096
+        self.HEIGHT = 4096
+        self.load_images()
         age_coef = self.age_coef_slider.get()
         global_scaling_maps = self.global_scaling_maps_slider.get()
         global_scaling_masks = self.global_scaling_masks_slider.get()
@@ -179,22 +203,11 @@ class SkinParameterAdjustmentApp:
         recovered = np.asarray(recovered).reshape((4096,4096, 3)) * 255
         
         cv2.imwrite(r"modified/modified.png", cv2.cvtColor(recovered, cv2.COLOR_BGR2RGB))
-                
-        
+        self.WIDTH = 128
+        self.HEIGHT = 128
+        self.load_images() 
 
     def update_plot(self):
-        """
-                    age_coef=self.age_coef_slider.get(),
-            global_scaling_maps=self.global_scaling_maps_slider.get(),
-            global_scaling_masks=self.global_scaling_masks_slider.get(),
-            scale_c_m=self.scaling_map1_slider.get(),
-            scale_c_h=self.scaling_map2_slider.get(),
-            scale_b_m=self.scaling_map3_slider.get(),
-            scale_b_h=self.scaling_map4_slider.get(),
-            scale_t=self.scaling_map5_slider.get(),
-            scale_mask_mel=self.scaling_mask1_slider.get(),
-            scale_mask_oxy_aged=self.scaling_mask2_slider.get(),
-        """
         age_coef = self.age_coef_slider.get()
         global_scaling_maps = self.global_scaling_maps_slider.get()
         global_scaling_masks = self.global_scaling_masks_slider.get()
@@ -205,7 +218,6 @@ class SkinParameterAdjustmentApp:
         scale_t = self.scaling_map5_slider.get()
         scale_mask_mel = self.scaling_mask1_slider.get()
         scale_mask_oxy_aged = self.scaling_mask2_slider.get()
-
         # Apply scaling factors for the maps and masks
         parameter_maps_changed, encode_time = encode(self.original_image.reshape(-1, 3) / 255.0)
         mel_aged_changed = self.mel_aged.copy()
@@ -233,7 +245,7 @@ class SkinParameterAdjustmentApp:
         # Decode the updated parameter maps to get the recovered image
         recovered, decode_time = decode(parameter_maps_changed)
         recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3)) * 255
-
+        self.modified_image = recovered
         # Update the displayed images
         self.update_images(self.original_image, recovered)
 
@@ -241,10 +253,20 @@ class SkinParameterAdjustmentApp:
 
 
     def update_images(self, original, modified):
+        if np.max(original) < 1:
+            plt.imshow(original)
+            plt.show()
+            original *= 255
+            
+        if np.max(modified) < 1:
+            plt.imshow(modified)
+            plt.show()
+            modified *= 255
+
         original_pil = Image.fromarray(np.uint8(original))
         modified_pil = Image.fromarray(np.uint8(modified))
-        original_photo = ImageTk.PhotoImage(original_pil)
-        modified_photo = ImageTk.PhotoImage(modified_pil)
+        original_photo = ImageTk.PhotoImage(original_pil.resize((512, 512)))
+        modified_photo = ImageTk.PhotoImage(modified_pil.resize((512, 512)))
     
         if self.original_label is None:
             self.original_label = ttk.Label(self.frame_images, image=original_photo)
@@ -270,7 +292,7 @@ class SkinParameterAdjustmentApp:
         self.frame_images = ttk.Frame(self.root)
         self.frame_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age Coefficient:", 0, 10, 0.01, 6)
+        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age Coefficient:", 0, 10, 0.01, 4)
         self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "All Maps:", 0, 2, 0.01, 0.1)
         self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "All Masks:", 0, 2, 0.01, 0.1)
         self.scaling_map1_slider = self.create_slider(self.frame_sliders, "Scale Cm:", 0, 2, 0.01, 1)
@@ -306,7 +328,3 @@ class SkinParameterAdjustmentApp:
     def run(self):
         self.root.mainloop()
 
-if __name__ == '__main__':
-    app = SkinParameterAdjustmentApp(image_path=r"m53_4k.png", WIDTH=128, HEIGHT=128, mel_aged_path=r"warped_masks\Melanin_Age_Mask_filled_warped.png", oxy_aged_path=r"warped_masks\oxy_deoxy_mask_filled_warped_best.png")
-
-    app.run()
