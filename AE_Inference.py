@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import time
 import subprocess
 import numpy as np
@@ -23,8 +24,8 @@ def get_gpu_memory():
     memory_total = int(memory_total_str) * 1024 * 1024
     return memory_total
 working_dir = os.getcwd()
-encoder_path = os.path.join(working_dir, CONFIG.ENCODER_PATH)
-decoder_path = os.path.join(working_dir, CONFIG.DECODER_PATH)
+encoder_path = Path(CONFIG.ENCODER_PATH)
+decoder_path = Path(CONFIG.DECODER_PATH)
 
 encoder = load_model(encoder_path)
 decoder = load_model(decoder_path)

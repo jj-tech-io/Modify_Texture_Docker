@@ -1,5 +1,4 @@
 import sys
-
 from scipy.spatial import Delaunay
 import cv2
 import numpy as np

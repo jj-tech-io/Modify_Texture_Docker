@@ -3,15 +3,11 @@ import sys
 import time
 import tkinter as tk
 from tkinter import ttk
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image, ImageTk
-# from tensorflow.python.keras.models import load_model
-# from tensorflow.keras.models import load_model
-# from keras.saving.save import load_model
 from tensorflow.keras.models import load_model
 import CONFIG
 

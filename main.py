@@ -1,16 +1,17 @@
 import os
 from pathlib import Path
+from tkinter import *
+from tkinter.ttk import *
+import importlib
 import sys
 sys.path.append('morph')
 import morph
 from morph import *
 import transform_objects
 from transform_objects import *
-import importlib
 import AE_Inference
 from AE_Inference import encode, decode, age_mel, age_hem, get_masks
-from tkinter import *
-from tkinter.ttk import *
+
 
 importlib.reload(morph)
 importlib.reload(transform_objects)
