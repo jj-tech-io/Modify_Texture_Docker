@@ -34,25 +34,74 @@ decoder = load_model(decoder_path)
 
 # Print the number of available GPUs
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+def reverse_gamma_correction(img):
+    """Reverse gamma correction on an image."""
+    return np.where(img > 0.04045, ((img + 0.055) / 1.055) ** 2.4, img / 12.92)
 
-
+def gamma_correction(img):
+    """Gamma correction on an image."""
+    return np.where(img > 0.0031308, 1.055 * (img ** (1 / 2.4)) - 0.055, 12.92 * img)
 def encode(img):
-    image = np.asarray(img).reshape(-1, 3)
+    image = np.asarray(img).reshape(-1,3).astype('float32')
+    if np.max(image) > 1:
+        print(f"max image {np.max(image)}")
+        print(f"min image {np.min(image)}")
+        image = image / 255.0
+        print(f"max image {np.max(image)}")
+        print(f"min image {np.min(image)}")
+    # pred_maps = encoder.predict(image)
+    image = reverse_gamma_correction(image)
     start = time.time()
-    with tf.device('/device:GPU:0'):
+    with tf.device('/device:GPU:0') as device:
         pred_maps = encoder.predict_on_batch(image)
-    end = time.time()
-    elapsed = end - start
-    return pred_maps, elapsed
-
-
+        end = time.time()
+        elapsed = end - start
+        print(f"shape or encoded {pred_maps.shape}")
+        return pred_maps, elapsed
+    
 def decode(encoded):
+    # recovered = decoder.predict(encoded)
     start = time.time()
-    with tf.device('/device:GPU:0'):
+    with tf.device('/device:GPU:0') as device:
+        #lower batch size to 2048
         recovered = decoder.predict_on_batch(encoded)
+        # recovered = decoder.predict_on_batch(encoded)
     end = time.time()
     elapsed = end - start
+    if np.max(recovered) > 1:
+        #norm 0-1
+        print(f"max recovered {np.max(recovered)}")
+        print(f"min recovered {np.min(recovered)}")
+        recovered = (recovered - np.min(recovered)) / (np.max(recovered) - np.min(recovered))
+        print(f"max recovered {np.max(recovered)}")
+        print(f"min recovered {np.min(recovered)}")
+        
+    # recovered = np.clip(recovered, 0, 1)
+    recovered = gamma_correction(recovered)
     return recovered, elapsed
+
+# def encode(img):
+#     image = np.asarray(img).reshape(-1, 3)
+#     #check if image is normalized
+#     if np.max(image) > 1:
+#         print(f"image max: {np.max(image)} image min: {np.min(image)}")
+#         image = image / 255
+#     ima
+#     start = time.time()
+#     with tf.device('/device:GPU:0'):
+#         pred_maps = encoder.predict_on_batch(image)
+#     end = time.time()
+#     elapsed = end - start
+#     return pred_maps, elapsed
+
+
+# def decode(encoded):
+#     start = time.time()
+#     with tf.device('/device:GPU:0'):
+#         recovered = decoder.predict_on_batch(encoded)
+#     end = time.time()
+#     elapsed = end - start
+#     return recovered, elapsed
 
 
 def age_mel(v, t, r=0.08):

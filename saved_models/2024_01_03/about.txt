@@ -1,0 +1,161 @@
+def reverse_gamma_correction(df_rgb):
+    rgb = df_rgb.to_numpy() / 255.0
+    rgb_corrected = np.where(rgb > 0.04045, ((rgb + 0.055) / 1.055) ** 2.4, rgb / 12.92)
+    return pd.DataFrame(rgb_corrected, columns=['sR', 'sG', 'sB'])
+
+# Load and concatenate dataframes
+lut_paths = ["LUTs/two_hundredkLUT.csv", "LUTs/uniform100k.csv", "LUTs/donner_lut.csv"]
+headers = "Cm,Ch,Bm,Bh,T,sR,sG,sB,L,A,B".split(",")
+df = pd.concat([pd.read_csv(path, sep=",", header=None, names=headers) for path in lut_paths])
+print(f"length of df {len(df)}")
+# Cleaning and preparation
+df = df.apply(pd.to_numeric, errors='coerce').dropna()
+# Round sR, sG, sB for duplicate removal
+df_rounded = df.copy()
+df_rounded[['sR', 'sG', 'sB']] = df[['sR', 'sG', 'sB']].round(0)
+
+# Calculate averages for difference calculations
+upper_bounds = [0.5, 0.32, 0.9, 0.9, 0.25]
+lower_bounds = [0.01, 0.001, 0.2, 0.6, 0.05]
+averages = np.array(upper_bounds) + np.array(lower_bounds) / 2
+avg_Cm, avg_Ch, avg_Bm, avg_Bh, avg_T = averages
+
+# Calculate differences for each column
+for col, avg in zip(headers[:5], averages):
+    df[col + '_diff'] = abs(df[col] - avg)
+
+# Calculate sum of differences
+# df['sum_diff'] = df[[col + '_diff' for col in headers[:5]]].sum(axis=1)
+#calculate based on Cm,Ch,T
+df['sum_diff'] = df[[col + '_diff' for col in ['Ch', 'T']]].sum(axis=1)
+
+# Remove duplicates based on the rounded values, keeping the one with the maximum sum_diff for each set of duplicates
+df = df.loc[df_rounded[['sR', 'sG', 'sB']].drop_duplicates(keep=False).index]
+max_diff_idx = df.groupby(['sR', 'sG', 'sB'])['sum_diff'].idxmax()
+df = df.loc[max_diff_idx]
+
+# Apply reverse gamma correction
+df[['sR', 'sG', 'sB']] = reverse_gamma_correction(df[['sR', 'sG', 'sB']])
+df = df.dropna()
+print(f"length of df {len(df)}")
+print(f"av r after {np.mean(df['sR'])} av g after {np.mean(df['sG'])} av b after {np.mean(df['sB'])}")
+x = df[['sR', 'sG', 'sB']].to_numpy(dtype='float32')
+y = df[['Cm', 'Ch', 'Bm', 'Bh', 'T']].to_numpy(dtype='float32')
+#train nn on x,y
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.0001, random_state=42, shuffle=True)
+
+#numpy arrays
+x_train = np.asarray(x_train).reshape(-1,3).astype('float32')
+x_test = np.asarray(x_test).reshape(-1,3).astype('float32')
+print(f"length of df {len(df)}")
+print(f"bef norm x_train[0] {x_train[0]}")
+
+print(f"aft norm x_train[0] {x_train[0]}")
+print(f"length of x_train {len(x_train)}")
+print(f"length of x_test {len(x_test)}")
+print(f"length of y_train {len(y_train)}")
+print(f"length of y_test {len(y_test)}")
+df.head()
+print(f"length of df {len(df)}")
+C_m = sorted(df['Cm'].unique())
+C_h = sorted(df['Ch'].unique())
+B_m = sorted(df['Bm'].unique())
+B_h = sorted(df['Bh'].unique())
+T = sorted(df['T'].unique())
+print(f"Cm = {C_m}")
+print(f"Ch = {C_h}")
+print(f"Bm = {B_m}")
+print(f"Bh = {B_h}")
+print(f"T = {T}")
+#min max for each
+min_vals = [min(C_m), min(C_h), min(B_m), min(B_h), min(T)]
+max_vals = [max(C_m), max(C_h), max(B_m), max(B_h), max(T)]
+np.random.seed(7)
+BATCH_SIZE = 4096*4
+
+NUM_NEURONS = 75
+NUM_LAYERS = 2
+NUM_EPOCHS = 400
+LR = 1e-3
+MLR = 1e-6
+about_string = f"batch_size_{BATCH_SIZE}_neurons_{NUM_NEURONS}_layers_{NUM_LAYERS}_epochs_{NUM_EPOCHS}_lr_{LR}_mlr_{MLR}_upper_bounds_{upper_bounds}_lower_bounds_{lower_bounds}"
+
+def decoder():
+    input = Input(shape=(5,), name="decoder_input")
+    for i in range(NUM_LAYERS):
+        if i == 0:
+            x = Dense(NUM_NEURONS, activation='relu', name=f"decoder_dense_{i+1}")(input)
+        else:
+            x = Dense(NUM_NEURONS, activation='relu', name=f"decoder_dense_{i+1}")(x)
+    out = Dense(3, name="encoder_output")(x)
+    model = Model(inputs=input, outputs=out, name='decoder')
+    return model
+
+def encoder():
+    input = Input(shape=(3,),name="encoder_input")
+    for i in range(NUM_LAYERS):
+        if i == 0:
+            x = Dense(NUM_NEURONS, activation='relu', name=f"encoder_dense_{i+1}")(input)
+        else:
+            x = Dense(NUM_NEURONS, activation='relu', name=f"encoder_dense_{i+1}")(x)
+    out = Dense(5, name="decoder_output")(x)
+    model = Model(inputs=input, outputs=out, name = 'encoder')
+    return model
+def autoencoder(encoder, decoder):
+    input_end_to_end = Input(shape=(3,))
+    l1 = encoder(input_end_to_end)
+    l2 = decoder(l1)
+    input_list = [encoder.input, decoder.input, input_end_to_end]
+    output_list = [encoder.output, decoder.output, l2]
+    model = Model(inputs=input_list, outputs=output_list, name = 'autoencoder')
+    return model
+encoder = encoder()
+decoder = decoder()
+autoencoder = autoencoder(encoder, decoder)
+print(encoder.summary())
+print(decoder.summary())
+print(autoencoder.summary())
+
+def albedo_loss(y_true, y_pred):
+    #l1 norm
+    l1_norm = K.sum(K.abs(y_pred - y_true), axis=-1)
+    return l1_norm
+
+def parameter_loss(y_true, y_pred):
+    #l2 norm
+    l2_norm = K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1))
+    # negative_penalty = tf.reduce_sum(tf.cast(tf.math.less(y_pred, 0.0), tf.float32)) #penalty for negative values ie ypred [-0.01,0,0,0,0] = tf.reduce_sum(tf.cast(tf.math.less(y_pred, 0.0), tf.float32))/5.0 = 0.2
+    return l2_norm
+def end_to_end_loss(y_true, y_pred):
+    #l1 norm
+    l1_norm = K.sum(K.abs(y_pred - y_true), axis=-1)
+    return l1_norm
+
+
+
+autoencoder.compile(optimizer='adam', loss=[parameter_loss, albedo_loss, end_to_end_loss], loss_weights=[.5,.1, .4])
+checkpoint = ModelCheckpoint(r"C:\Users\joeli\OneDrive\Documents\GitHub\AutoEncoder_Integrated\autoencoder_best.h5py", monitor='loss', verbose=0,
+    save_best_only=True, mode='auto', period=400)
+adjust_lr = ReduceLROnPlateau(monitor='loss', factor=0.01, patience=5, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=MLR, lr=LR)
+early_stopping = EarlyStopping(monitor='loss', min_delta=0.0001, patience=15, verbose=0, mode='auto', baseline=None, restore_best_weights=True)
+logdir=r"C:\Users\joeli\OneDrive\Documents\GitHub\AutoEncoder_Integrated\tensorboard_log_dir"
+print_callback = LambdaCallback(on_epoch_end=lambda epoch, logs: print(f"epoch: {epoch} , {logs}, LR: {K.get_value(autoencoder.optimizer.lr)}") if epoch % 2 == 0 else None)
+
+callbacks = [
+    checkpoint,
+    adjust_lr,
+    print_callback,
+    early_stopping
+]
+with tf.device('/device:GPU:0') as device:
+    #show device name
+    print(device)
+    #ae_in: enc_in, dec_in, end_to_end_in
+    x = [x_train, y_train,x_train]
+     #ae_out: enc_out, dec_out, end_to_end_out
+    x_val = [x_test, y_test,x_test]
+    #outputs: encoder, decoder, autoencoder
+    y = [y_train,x_train,x_train]
+    y_val = [y_test,x_test,x_test]
+    autoencoder.fit(x,y, epochs=200, batch_size=BATCH_SIZE, shuffle=True, validation_data=(x_val, y_val), callbacks=callbacks,verbose=0)
+    

@@ -45,7 +45,10 @@ def morph_images(example_image_path, target_image_path):
 # extract masks from source
 def extract_masks(image):
     Cm, Ch, Bm, Bh, T = get_masks(image)
-    # Bh = 1 - Bh
+    #inverted masks
+    print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)} mean Cm: {np.mean(Cm)}")
+    Cm = 1 - Cm
+    print(f"min Bh: {np.min(Bh)} max Bh: {np.max(Bh)} mean Bh: {np.mean(Bh)}")
     return Cm, Bh
 
 

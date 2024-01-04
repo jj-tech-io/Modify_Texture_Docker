@@ -1,10 +1,10 @@
-pathlib
 numpy
 scipy
-opencv-python  
+opencv-python
 mediapipe
 matplotlib
 pandas
-tensorflow
-Pillow  
+# tensorflow
+Pillow
 scikit-learn
+

@@ -1,21 +1,27 @@
-# Use an official Python runtime as a parent image
-# FROM python:3.10
-FROM nvidia/cuda:11.1.1-runtime-ubuntu20.04 
+# Use TensorFlow with GPU support as the parent image
+FROM tensorflow/tensorflow:latest-gpu
 
 # Set the working directory in the container to /app
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
-COPY requirements.txt /app/
-
-# Install system dependencies
+# Install system dependencies, including Xvfb for headless GUI and python3-tk for tkinter
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    rm -rf /var/lib/apt/lists/* && \
-    pip3 install --upgrade pip && \
-    pip3 install -r requirements.txt
+    apt-get install -y xvfb python3-tk && \
+    rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies from requirements.txt
+COPY requirements.txt /app/
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Set up the display environment variable for headless GUI
+ENV DISPLAY=:99
+
+# Copy the rest of your application into the container
+COPY . /app
+
+
+# You can add other heavy installations here if needed
 
 ## build the base image (python-base) to avoid installing the dependencies every time we build the image
-# docker build -f Dockerfile.base -t python-base .
+# docker build -f Dockerfile.base -t modify-texture-app-base .
