@@ -16,7 +16,6 @@ import PIL.Image as Image
 import mediapipe as mp
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import face_mesh as mp_face_mesh
-import imgaug.augmenters as iaa
 import random
 import main
 from main import *
@@ -326,8 +325,6 @@ FRECKLE_MASK = np.array(list(FRECKLE_MASK))
 BLUSH_MASK = np.array(list(BLUSH_MASK))
 
 
-
-
 #struct for face landmarks with landmarks, labels, positions
 class FaceLandmarks:
     def __init__(self, image,  segments, label, face_landmarks):
@@ -357,7 +354,6 @@ class FaceLandmarks:
         mean_y = mean_y // len(self.segments)
 
 
-
 def annotate_landmarks(image, face_landmarks, segments, color=(255,0,0), thickness=5):
     points = []
     for segment in segments:
@@ -375,7 +371,6 @@ def annotate_landmarks(image, face_landmarks, segments, color=(255,0,0), thickne
             points.append([p1x, p1y])
         if [p2x, p2y] not in points:
             points.append([p2x, p2y])
-
         # Draw text for each point
         cv2.putText(image, str(p1), (p1x, p1y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
         cv2.putText(image, str(p2), (p2x, p2y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
@@ -409,7 +404,6 @@ def generate_mask(image, landmarks, draw_function, indices, blur_kernel=(5,5),tr
 def draw_lines(image, face_landmarks, segments, color=(255,0,0), thickness=5, translate=(0,0)):
     points = []
     for i in segments:
-        print(i)
         p1 = i[0]
         p2 = i[1]
         p1x = int(face_landmarks.landmark[p1].x * image.shape[1])+translate[0]

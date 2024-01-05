@@ -5,6 +5,9 @@ from tkinter.ttk import *
 import importlib
 import sys
 sys.path.append('morph')
+sys.path.append('AE_Inference')
+sys.path.append('transform_objects')
+sys.path.append('segmentation')
 import morph
 from morph import *
 import transform_objects
@@ -50,15 +53,25 @@ def extract_masks(image):
     skin = threshold_face_skin_area(image,av_skin_color,mask=combined_mask)
     #Cm and with combined mask
     mask1 = np.where(combined_mask == 0, 0, Bm)
-    mask2 = np.where(combined_mask == 0, Bm*0.75, 0)
-    mask1 = np.where(combined_mask == 0, mask2, mask1)
+
     # Bh and with inverted combined mask
     mask2 = np.where(combined_mask == 0, Bh, 0)
     masks = [Cm, Ch, Bm, Bh, T, mask1, mask2]
     #normalize masks
+    print(f"np.mean cm {np.mean(Cm)}")
     for i in range(len(masks)):
         masks[i] = (masks[i] - np.min(masks[i])) / (np.max(masks[i]) - np.min(masks[i]))
         masks[i] = np.clip(masks[i], 0, 1)*0.25
+    print(f"np.mean cm {np.mean(Cm)}")
+    fig, ax = plt.subplots(1,7, figsize=(20, 10))
+    ax[0].imshow(Cm, cmap='gray')
+    ax[1].imshow(Ch, cmap='gray')
+    ax[2].imshow(Bm, cmap='gray')
+    ax[3].imshow(Bh, cmap='gray')
+    ax[4].imshow(T, cmap='gray')
+    ax[5].imshow(mask1, cmap='gray')
+    ax[6].imshow(mask2, cmap='gray')
+    plt.show()
     return Cm, Ch, skin, face
 
 # apply masks and transformations to target's latent space

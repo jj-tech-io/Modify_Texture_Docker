@@ -23,6 +23,7 @@ def get_gpu_memory():
     # Assuming the output is in MiB, which is usual for nvidia-smi, convert to bytes
     memory_total = int(memory_total_str) * 1024 * 1024
     return memory_total
+
 working_dir = os.getcwd()
 encoder_path = Path(CONFIG.ENCODER_PATH)
 decoder_path = Path(CONFIG.DECODER_PATH)

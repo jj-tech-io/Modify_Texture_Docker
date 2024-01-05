@@ -1,5 +1,5 @@
 # Use TensorFlow with GPU support as the parent image
-FROM tensorflow/tensorflow:latest-gpu
+FROM tensorflow/tensorflow:devel-gpu
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -16,6 +16,8 @@ RUN pip install --upgrade pip && \
 
 # Set up the display environment variable for headless GUI
 ENV DISPLAY=:99
+# Set up for tkinter display
+ENV PYTHONUNBUFFERED=1
 
 # Copy the rest of your application into the container
 COPY . /app
@@ -24,4 +26,4 @@ COPY . /app
 # You can add other heavy installations here if needed
 
 ## build the base image (python-base) to avoid installing the dependencies every time we build the image
-# docker build -f Dockerfile.base -t modify-texture-app-base .
+# docker build -f Dockerfile.base -t modify-texture-app .

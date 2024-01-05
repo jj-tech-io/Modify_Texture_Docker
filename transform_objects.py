@@ -162,10 +162,12 @@ class SkinParameterAdjustmentApp:
         if changed_slider == 'cm_mask':
             print(f"cm_mask: {cm_mask_slider}")
         cm_new =  (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 0]
+        # bm_new = (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 2]
         parameter_maps[:, 0] = cm_new
+        # parameter_maps[:, 3] = bm_new
         if changed_slider == 'bh_mask':
             print(f"bh_mask: {bh_mask_slider}")
-        parameter_maps[:, 1] = (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1]
+        parameter_maps[:, 3] = (bh_mask_slider * self.oxy_aged.reshape(-1)) + (1 - bh_mask_slider)*parameter_maps[:, 3] 
 
         recovered, decode_time = decode(parameter_maps)
         recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3)) * 255
