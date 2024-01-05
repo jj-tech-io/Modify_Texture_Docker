@@ -50,15 +50,8 @@ To contribute to Modify_Texture_Docker:
 
 ## Contributors
 
-Thanks to the following people who have contributed to this project:
+Joel Johnson
+* [@contributor1](https://github.com/jj-tech-io)
 
-* [@contributor1](https://github.com/contributor1)
-* [@contributor2](https://github.com/contributor2)
-
-## Contact
-
-If you want to contact me you can reach me at <your_email@your_email.com>.
 
 ## License
-
-This project uses the following license: [<license_name>](<license_url>).
