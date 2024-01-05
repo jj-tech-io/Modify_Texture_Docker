@@ -19,7 +19,9 @@ importlib.reload(AE_Inference)
 
 
 class SkinParameterAdjustmentApp:
-    def __init__(self, image, mel_aged, oxy_aged):
+    def __init__(self, image, mel_aged, oxy_aged, skin, face):
+        self.skin = cv2.resize(skin, (512, 512))
+        self.face = cv2.resize(face, (512, 512))
         self.original_label = None
         self.modified_label = None
         self.encoder = None
@@ -95,6 +97,7 @@ class SkinParameterAdjustmentApp:
         self.modified_image = modified_image
         self.mel_aged = mel_aged
         self.oxy_aged = oxy_aged
+        self.parameter_maps = parameter_maps_original.copy()
         self.parameter_maps_original = parameter_maps_original
         self.parameter_maps_original, self.encode_time = encode(self.original_image.reshape(-1, 3) / 255.0)
         self.original_4k = cv2.resize(original_4k, (self.WIDTH, self.WIDTH))
@@ -120,13 +123,13 @@ class SkinParameterAdjustmentApp:
         age_coef = self.age_coef_slider.get()
         global_scaling_maps = self.global_scaling_maps_slider.get()
         global_scaling_masks = self.global_scaling_masks_slider.get()
-        scale_c_m = self.scaling_map1_slider.get()
-        scale_c_h = self.scaling_map2_slider.get()
-        scale_b_m = self.scaling_map3_slider.get()
-        scale_b_h = self.scaling_map4_slider.get()
-        scale_t = self.scaling_map5_slider.get()
-        scale_mask_mel = self.scaling_mask1_slider.get()
-        scale_mask_oxy_aged = self.scaling_mask2_slider.get()
+        scale_c_m = self.cm_slider.get()
+        scale_c_h = self.ch_slider.get()
+        scale_b_m = self.bm_slider.get()
+        scale_b_h = self.bh_slider.get()
+        scale_t = self.t_slider.get()
+        cm_mask_slider = self.cm_mask_slider.get()
+        bh_mask_slider_aged = self.bh_mask_slider.get()
 
         # Apply scaling factors for the maps and masks
         parameter_maps_changed, encode_time = encode(self.original_4k.reshape(-1, 3) / 255.0)
@@ -140,7 +143,6 @@ class SkinParameterAdjustmentApp:
         parameter_maps_changed[:, 3] *= global_scaling_masks
         
         parameter_maps_changed[:, 2] = age_mel(parameter_maps_changed[:, 2], age_coef)
-
         parameter_maps_changed[:, 0] *= scale_c_m
         parameter_maps_changed[:, 0] *= global_scaling_maps
         parameter_maps_changed[:, 1] *= scale_c_h
@@ -152,18 +154,15 @@ class SkinParameterAdjustmentApp:
         parameter_maps_changed[:, 4] *= scale_t
         parameter_maps_changed[:, 4] *= global_scaling_maps
         # Apply scaling factors for the masks
-        mel_aged_mask_scaled = self.mel_aged_4k.copy() * scale_mask_mel
+        mel_aged_mask_scaled = self.mel_aged_4k.copy() * cm_mask_slider
         mel_aged_mask_scaled = cv2.resize(mel_aged_mask_scaled, (4096, 4096))
-        oxy_aged_mask_scaled = self.oxy_aged_4k.copy() * scale_mask_oxy_aged
+        oxy_aged_mask_scaled = self.oxy_aged_4k.copy() * bh_mask_slider_aged
         oxy_aged_mask_scaled = cv2.resize(oxy_aged_mask_scaled, (4096, 4096))
-
         # Apply scaling factors for the masks
-        mel_aged_mask_scaled = self.mel_aged_4k.copy() * scale_mask_mel
-        oxy_aged_mask_scaled = self.oxy_aged_4k.copy() * scale_mask_oxy_aged
-
+        mel_aged_mask_scaled = self.mel_aged_4k.copy() * cm_mask_slider
+        oxy_aged_mask_scaled = self.oxy_aged_4k.copy() * bh_mask_slider_aged
         parameter_maps_changed[:, 0] += np.abs(mel_aged_mask_scaled.reshape(-1)) * global_scaling_masks
         parameter_maps_changed[:, 1] += np.abs(oxy_aged_mask_scaled.reshape(-1)) * global_scaling_masks
-
         # Decode the updated parameter maps to get the recovered image
         recovered, decode_time = decode(parameter_maps_changed)
         recovered = np.asarray(recovered).reshape((4096, 4096, 3)) * 255
@@ -173,57 +172,70 @@ class SkinParameterAdjustmentApp:
         self.HEIGHT = 512
         self.load_images()
 
-    def update_plot(self):
+    def update_plot(self, changed_slider=None):
+        parameter_maps_original = self.parameter_maps_original.copy()
+        parameter_maps = self.parameter_maps_original.copy()
         age_coef = self.age_coef_slider.get()
-        # global_scaling_maps = self.global_scaling_maps_slider.get()
-        # global_scaling_masks = self.global_scaling_masks_slider.get()
-        scale_c_m = self.scaling_map1_slider.get()
-        scale_c_h = self.scaling_map2_slider.get()
-        scale_b_m = self.scaling_map3_slider.get()
-        scale_b_h = self.scaling_map4_slider.get()
-        scale_t = self.scaling_map5_slider.get()
-        scale_mask_mel = self.scaling_mask1_slider.get()
-        scale_mask_oxy_aged = self.scaling_mask2_slider.get()
-        # Apply scaling factors for the maps and masks
-        parameter_maps_changed, encode_time = encode(self.original_image.reshape(-1, 3) / 255.0)
-        mel_aged_changed = self.mel_aged.copy()
-        oxy_aged_changed = self.oxy_aged.copy()
+        scale_c_m = self.cm_slider.get()
+        scale_c_h = self.ch_slider.get()
+        scale_b_m = self.bm_slider.get()
+        scale_b_h = self.bh_slider.get()
+        scale_t = self.t_slider.get()
+        cm_mask_slider = self.cm_mask_slider.get()
+        bh_mask_slider = self.bh_mask_slider.get()
+        global_scaling_maps = self.global_scaling_maps_slider.get()
+        global_scaling_masks = self.global_scaling_masks_slider.get()
+
         # Update maps based on scaling factors
-        parameter_maps_changed[:, 0] = age_mel(parameter_maps_changed[:, 0], age_coef)
-        parameter_maps_changed[:, 1] = age_hem(parameter_maps_changed[:, 1], age_coef)
+        # if changed_slider == 'age_coef':
 
+        parameter_maps[:, 0] = age_mel(parameter_maps[:, 0], age_coef)
+        parameter_maps[:, 1] = age_hem(parameter_maps[:, 1], age_coef)
+            
+        # if changed_slider == 'cm':
+        scale_c_m = self.cm_slider.get()
+        parameter_maps[:, 0] = scale_c_m* parameter_maps[:, 0]
+        # if changed_slider == 'ch':
+        parameter_maps[:, 1] = scale_c_h* parameter_maps[:, 1]
+        # if changed_slider == 'bm':
+        scale_b_m = self.bm_slider.get()
+        parameter_maps[:, 2] = scale_b_m*parameter_maps[:, 2]
+        # if changed_slider == 'bh':
+        scale_b_h = self.bh_slider.get()
+        parameter_maps[:, 3] = scale_b_h*parameter_maps[:, 3]
+        # if changed_slider == 't':
+        scale_t = self.t_slider.get()
+        parameter_maps[:, 4] = scale_t*parameter_maps[:, 4]
 
-        parameter_maps_changed[:, 0] += scale_c_m
-        parameter_maps_changed[:, 1] += scale_c_h
-        parameter_maps_changed[:, 2] += scale_b_m
-        parameter_maps_changed[:, 3] += scale_b_h
-        parameter_maps_changed[:, 4] += scale_t
-
-        # Apply scaling factors for the masks
-        mel_aged_mask_scaled = mel_aged_changed * scale_mask_mel
-        oxy_aged_mask_scaled = oxy_aged_changed * scale_mask_oxy_aged
-
-        parameter_maps_changed[:, 0] += np.abs(mel_aged_mask_scaled) 
-        parameter_maps_changed[:, 1] += np.abs(oxy_aged_mask_scaled) 
-
-        # Decode the updated parameter maps to get the recovered image
-        recovered, decode_time = decode(parameter_maps_changed)
+        if changed_slider == 'cm_mask':
+            print(f"cm_mask: {cm_mask_slider}")
+        cm_new =  (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 0]
+        skin = self.skin.reshape(-1, 3)[:,1]
+        parameter_maps[:, 0] = cm_new
+        #make the skin mask areas unmodified
+        # parameter_maps[:, 0] = np.where(self.skin[0] == [0,0,0], parameter_maps[:, 0], self.parameter_maps_original[:, 0])
+        if changed_slider == 'bh_mask':
+            print(f"bh_mask: {bh_mask_slider}")
+        parameter_maps[:, 1] = (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1]
+        
+        recovered, decode_time = decode(parameter_maps)
         recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3)) * 255
+        self.parameter_maps = parameter_maps
         self.modified_image = recovered
-        # Update the displayed images
-        self.update_images(self.original_image, recovered)
+
+        self.update_images(self.original_image, self.modified_image)
 
         return recovered
 
     def update_images(self, original, modified):
-        if np.max(original) < 1:
+        if np.max(original) < 1:    
             plt.imshow(original)
             plt.show()
             original *= 255
 
         if np.max(modified) < 1:
             plt.imshow(modified)
-            plt.show()
+            plt.show()  
             modified *= 255
         try:
             original_pil = Image.fromarray(np.uint8(original))
@@ -254,38 +266,47 @@ class SkinParameterAdjustmentApp:
         self.frame_sliders = ttk.Frame(self.root)
         self.frame_sliders.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         #make sliders wider
-        self.frame_sliders.configure(width=500)
-
+        self.frame_sliders.configure(width=900)
+    
         self.frame_buttons = ttk.Frame(self.root)
         self.frame_buttons.pack(side=tk.BOTTOM, fill=tk.X, expand=False)
         self.frame_images = ttk.Frame(self.root)
         self.frame_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.01, 1.0)
-        # self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "Map(s):", 0, 2, 0.01, 1.0)
-        # self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "Mask(s):", 0, 2, 0.01, 0.1)
-        self.scaling_map1_slider = self.create_slider(self.frame_sliders, "Cm:", -0.6, 0.6, 0.01, 0)
-        self.scaling_map2_slider = self.create_slider(self.frame_sliders, "Ch:", -0.32, 0.32, 0.01, 0)
-        self.scaling_map3_slider = self.create_slider(self.frame_sliders, "Bm:", -1, 1, 0.01, 0)
-        self.scaling_map4_slider = self.create_slider(self.frame_sliders, "Bh:", -1, 1, 0.01, 0)
-        self.scaling_map5_slider = self.create_slider(self.frame_sliders, "T:", -0.2, 0.2, 0.01, 0)
-        self.scaling_mask1_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", -1, 1, 0.01, 0)
-        self.scaling_mask2_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", -1, 1, 0.01, 0)
+        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.1, 0.0)
+        self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "Map(s):", 0, 2, 0.1, 1.0)
+        self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "Mask(s):", 0, 2, 0.1, 1.0)
+        self.cm_slider = self.create_slider(self.frame_sliders, "Cm:", 0, 2, 0.1, 1)
+        self.ch_slider = self.create_slider(self.frame_sliders, "Ch:", 0, 2, 0.1, 1)
+        self.bm_slider = self.create_slider(self.frame_sliders, "Bm:", 0, 2, 0.1, 1)
+        self.bh_slider = self.create_slider(self.frame_sliders, "Bh:", 0, 2, 0.1, 1)
+        self.t_slider = self.create_slider(self.frame_sliders, "T:", 0, 2, 0.1, 1)
+        self.cm_mask_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", -1, 1, 0.1, 0)
+        self.bh_mask_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", -1, 1, 0.1, 0)
 
 
         self.save_button = ttk.Button(self.frame_buttons, text="Save 4K Image", command=self.save_4k_image)
         self.save_button.pack(side=tk.RIGHT, padx=5, pady=5)
 
-        self.age_coef_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        # self.global_scaling_maps_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        # self.global_scaling_masks_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        self.scaling_map1_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        self.scaling_map2_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        self.scaling_map3_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        self.scaling_map4_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        self.scaling_map5_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        self.scaling_mask1_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
-        self.scaling_mask2_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot())
+        self.age_coef_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='age_coef'))
+        self.global_scaling_maps_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='global_scaling_maps'))
+        self.global_scaling_masks_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='global_scaling_masks'))
+        # self.cm_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='cm'))
+        # self.ch_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='ch'))
+        # self.bm_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='bm'))
+        # self.bh_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='bh'))
+        # self.t_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='t'))
+        # self.cm_mask_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='cm_mask'))
+        # self.bh_mask_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='bh_mask'))
+        # Correct the bindings to use the correct button release event and the slider name
+        self.cm_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('cm'))
+        self.ch_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('ch'))
+        self.bm_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('bm'))
+        self.bh_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('bh'))
+        self.t_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('t'))
+        self.cm_mask_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('cm_mask'))
+        self.bh_mask_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('bh_mask'))
+
         # make window resizable
         self.root.resizable(True, True)
         #black background

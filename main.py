@@ -11,8 +11,9 @@ import transform_objects
 from transform_objects import *
 import AE_Inference
 from AE_Inference import encode, decode, age_mel, age_hem, get_masks
-
-
+import segmentation
+from segmentation import *
+importlib.reload(segmentation)
 importlib.reload(morph)
 importlib.reload(transform_objects)
 
@@ -37,26 +38,36 @@ def morph_images(example_image_path, target_image_path):
     example_image = cv2.resize(example_image, (WIDTH, HEIGHT))
     landmarks1 = get_landmarks(example_image)
     landmarks2 = get_landmarks(target_image)
-    warped_example_image, delaunay, transformation_matrices = warp_image(example_image, target_image, landmarks1,
-                                                                         landmarks2)
+    warped_example_image, delaunay, transformation_matrices = warp_image(example_image, target_image,
+        landmarks1, landmarks2)
     return warped_example_image, target_image, example_image
 
 
 # extract masks from source
 def extract_masks(image):
     Cm, Ch, Bm, Bh, T = get_masks(image)
+    landmarks = get_landmarks(image)
     #inverted masks
-    print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)} mean Cm: {np.mean(Cm)}")
-    # Cm = 1 - Cm
-    print(f"min Bh: {np.min(Bh)} max Bh: {np.max(Bh)} mean Bh: {np.mean(Bh)}")
-    return Cm, Bh
+    combined_mask, lips, eyes, nose, eye_bags, face, landmark_object, av_skin_color = create_combined_mask(image)
+    skin = threshold_face_skin_area(image,av_skin_color,mask=combined_mask)
+    #Cm and with combined mask
+    mask1 = np.where(combined_mask == 0, 0, Bm)
+    mask2 = np.where(combined_mask == 0, Bm*0.75, 0)
+    mask1 = np.where(combined_mask == 0, mask2, mask1)
+    # Bh and with inverted combined mask
+    mask2 = np.where(combined_mask == 0, Bh, 0)
+    masks = [Cm, Ch, Bm, Bh, T, mask1, mask2]
+    #normalize masks
+    for i in range(len(masks)):
+        masks[i] = (masks[i] - np.min(masks[i])) / (np.max(masks[i]) - np.min(masks[i]))
+        masks[i] = np.clip(masks[i], 0, 1)*0.25
+    return Cm, Ch, skin, face
 
 
 # apply masks and transformations to target's latent space
-def apply_transforms(target_image, mel_aged, oxy_aged):
-    app = SkinParameterAdjustmentApp(image=target_image, mel_aged=mel_aged, oxy_aged=oxy_aged)
+def apply_transforms(target_image, mel_aged, oxy_aged, skin, face):
+    app = SkinParameterAdjustmentApp(image=target_image, mel_aged=mel_aged, oxy_aged=oxy_aged,skin=skin,face=face)
     app.run()
-
 
 if __name__ == '__main__':
     working_dir = os.getcwd()
@@ -64,26 +75,8 @@ if __name__ == '__main__':
     example_texture_path = Path(working_dir, example_texture_path)
     # target_texture_path = r"textures\template_base_uv.png"
     target_texture_path = r"textures/1_neutral.jpg"
+    target_texture_path = r"textures/m53_4k.png"
     target_texture_path = Path(working_dir, target_texture_path)
-    print(f"example texture path: {example_texture_path}")
-    print(f"target texture path: {target_texture_path}")
-    #textures\m53_4k.png
-    # target_texture_path = r"textures\m53_4k.png"
     warped_example_image, target_image, example_image = morph_images(Path(example_texture_path), Path(target_texture_path))
-    Cm, Bh = extract_masks(warped_example_image)
-    fig, ax = plt.subplots(1, 5, figsize=(12, 4))
-    ax[0].imshow(cv2.cvtColor(example_image, cv2.COLOR_BGR2RGB))
-    ax[0].set_title("Example image")
-    ax[2].imshow(cv2.cvtColor(warped_example_image, cv2.COLOR_BGR2RGB))
-    ax[2].set_title("Warped example image")
-    ax[1].imshow(cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB))
-    ax[1].set_title("Target image")
-    ax[3].imshow(Cm, cmap='gray')
-    ax[3].set_title("Cm")
-    ax[4].imshow(Bh, cmap='gray')
-    ax[4].set_title("Bh")
-    plt.tight_layout()
-    plt.show()
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    apply_transforms(target_image, Cm, Bh)
+    Cm, Bh, skin, face = extract_masks(warped_example_image)
+    apply_transforms(target_image, Cm, Bh, skin, face)

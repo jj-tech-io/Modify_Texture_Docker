@@ -68,11 +68,12 @@ def decode(encoded):
         # recovered = decoder.predict_on_batch(encoded)
     end = time.time()
     elapsed = end - start
-    if np.max(recovered) > 1:
+    if np.max(recovered) > 2:
         #norm 0-1
         print(f"max recovered {np.max(recovered)}")
         print(f"min recovered {np.min(recovered)}")
-        recovered = (recovered - np.min(recovered)) / (np.max(recovered) - np.min(recovered))
+        # recovered = (recovered - np.min(recovered)) / (np.max(recovered) - np.min(recovered))
+        recovered = recovered / 255.0
         print(f"max recovered {np.max(recovered)}")
         print(f"min recovered {np.min(recovered)}")
         
@@ -80,28 +81,6 @@ def decode(encoded):
     recovered = gamma_correction(recovered)
     return recovered, elapsed
 
-# def encode(img):
-#     image = np.asarray(img).reshape(-1, 3)
-#     #check if image is normalized
-#     if np.max(image) > 1:
-#         print(f"image max: {np.max(image)} image min: {np.min(image)}")
-#         image = image / 255
-#     ima
-#     start = time.time()
-#     with tf.device('/device:GPU:0'):
-#         pred_maps = encoder.predict_on_batch(image)
-#     end = time.time()
-#     elapsed = end - start
-#     return pred_maps, elapsed
-
-
-# def decode(encoded):
-#     start = time.time()
-#     with tf.device('/device:GPU:0'):
-#         recovered = decoder.predict_on_batch(encoded)
-#     end = time.time()
-#     elapsed = end - start
-#     return recovered, elapsed
 
 
 def age_mel(v, t, r=0.08):
@@ -126,7 +105,6 @@ def age_hem(v, t, r_Hbi=0.06, r_Hbe=0.1, zeta=0.5):
 
 def get_masks(image):
     # image = cv2.imread(image_path)
-    print(f"image shape: {np.shape(image)} image max: {np.max(image)} image min: {np.min(image)}")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     WIDTH = 4096
     HEIGHT = 4096
@@ -154,9 +132,13 @@ def get_masks(image):
     T = (T - np.min(T)) / (np.max(T) - np.min(T))
     # clip to 0-1
     Cm = np.clip(Cm, 0, 1)
+    # Cm = 1 - Cm
     Ch = np.clip(Ch, 0, 1)
+    # Ch = 1 - Ch
     Bm = np.clip(Bm, 0, 1)
+    # Bm = 1 - Bm
     Bh = np.clip(Bh, 0, 1)
+    # Bh = 1 - Bh
     T = np.clip(T, 0, 1)
-
+    # T = 1 - T
     return Cm, Ch, Bm, Bh, T
