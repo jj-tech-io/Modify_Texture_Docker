@@ -397,17 +397,13 @@ def generate_mask(image, landmarks, draw_function, indices, blur_kernel=(5,5),tr
     """
     # Initialize a blank mask with the same dimensions as the input image
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
-    
     # Draw the feature lines on the mask
     mask = draw_function(mask, landmarks, indices, color=(255,255,255),translate=translate)
-    
     # Find contours and fill them in the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(mask, contours, -1, (255), thickness=cv2.FILLED)
-    
     # Apply Gaussian blur to smooth the mask
     mask = cv2.GaussianBlur(mask, blur_kernel, 0)
-    
     return mask
 
 def draw_lines(image, face_landmarks, segments, color=(255,0,0), thickness=5, translate=(0,0)):
@@ -431,10 +427,8 @@ def draw_lines(image, face_landmarks, segments, color=(255,0,0), thickness=5, tr
         p1 = points[i]
         p2 = points[i + 1]
         cv2.line(image, p1, p2, color, thickness=5)
-
     seed = points[-1]
     cv2.floodFill(image, None, seedPoint=(seed[0], seed[1]), newVal=color, loDiff=(0,0,0,0), upDiff=(0,0,0,0), flags=4 | cv2.FLOODFILL_MASK_ONLY)
-
     center = (sum([p[0] for p in points])//len(points), sum([p[1] for p in points])//len(points))
 
     return image
@@ -485,7 +479,6 @@ def create_combined_mask(image):
         #av non masked skin color
         mask_boolean = combined_mask > 0
         av_skin_color = np.mean(image[mask_boolean], axis=0)
-        print(f"skin color {av_skin_color}")
         return combined_mask, lips, eyes, nose, eye_bags, face, landmark_object, av_skin_color
 
 def extract_face_skin_area(img):
@@ -550,38 +543,12 @@ if __name__ == '__main__':
     cv2.imwrite('Bm.png', Bm*255)
     cv2.imwrite('Bh.png', Bh*255)
     cv2.imwrite('T.png', T*255)
-    #inverted masks
-    print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)} mean Cm: {np.mean(Cm)}")
     combined_mask, lips, eyes, nose, eye_bags, face, landmark_object, av_skin_color = create_combined_mask(image)
-
     skin = threshold_face_skin_area(image,av_skin_color,mask=combined_mask)
-    plt.imshow(skin)
-    plt.show()
     masks = [Cm, Ch, Bm, Bh, T]
     fig, ax = plt.subplots(1, 5, figsize=(12, 4))
     for i, mask in enumerate(masks):
         ax[i].imshow(mask, cmap='gray')
     plt.show()
 
-    #Cm and with combined mask
-    # mask1 = np.where(combined_mask > 0, Bm, 1)
-    # mask1 = 1 - mask1
-    # #dialet mask1
-    # kernel = np.ones((15,15),np.uint8)
-    # mask1 = cv2.dilate(mask1,kernel,iterations = 3)
-    # #blur mask1
-    # mask1 = cv2.GaussianBlur(mask1, (15,15), 0)
-    # mask2 = Bh
-    # #save masks
-    # cv2.imwrite('mask1.png', mask1*255)
-    # cv2.imwrite('mask2.png', mask2*255)
-    # plt.imshow(mask1, cmap='gray')
-    # plt.colorbar()
-    # plt.show()
-    # plt.imshow(mask2, cmap='gray')
-    # plt.colorbar()
-    # plt.show()
-
-
-
-        
+    

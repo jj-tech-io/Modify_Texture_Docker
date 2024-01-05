@@ -26,13 +26,9 @@ def get_gpu_memory():
 working_dir = os.getcwd()
 encoder_path = Path(CONFIG.ENCODER_PATH)
 decoder_path = Path(CONFIG.DECODER_PATH)
-
 encoder = load_model(encoder_path)
 decoder = load_model(decoder_path)
-# encoder = load_model(CONFIG.ENCODER_PATH)
-# decoder = load_model(CONFIG.DECODER_PATH)
 
-# Print the number of available GPUs
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 def reverse_gamma_correction(img):
     """Reverse gamma correction on an image."""
@@ -56,7 +52,7 @@ def encode(img):
         pred_maps = encoder.predict_on_batch(image)
         end = time.time()
         elapsed = end - start
-        print(f"shape or encoded {pred_maps.shape}")
+        print(f"shape of encoded {pred_maps.shape}")
         return pred_maps, elapsed
     
 def decode(encoded):
@@ -79,6 +75,7 @@ def decode(encoded):
         
     # recovered = np.clip(recovered, 0, 1)
     recovered = gamma_correction(recovered)
+    print(f"shape of decoded {recovered.shape}")
     return recovered, elapsed
 
 
@@ -110,9 +107,6 @@ def get_masks(image):
     HEIGHT = 4096
     image = cv2.resize(image, (WIDTH, HEIGHT))
     parameter_maps, elapsed = encode(image)
-    print("Encoding time: ", elapsed)
-    print(
-        f"parameter maps shape: {parameter_maps.shape} parameter maps type: {parameter_maps.dtype} parameter maps max: {np.max(parameter_maps)} parameter maps min: {np.min(parameter_maps)}")
     Cm = parameter_maps[:, 0].reshape(WIDTH, HEIGHT)
     # normalize 0-1
     print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)}")

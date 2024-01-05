@@ -20,7 +20,6 @@ importlib.reload(transform_objects)
 WIDTH = 4096
 HEIGHT = 4096
 
-
 # morph the source image to the target image
 def morph_images(example_image_path, target_image_path):
     # Read the images into NumPy arrays
@@ -42,7 +41,6 @@ def morph_images(example_image_path, target_image_path):
         landmarks1, landmarks2)
     return warped_example_image, target_image, example_image
 
-
 # extract masks from source
 def extract_masks(image):
     Cm, Ch, Bm, Bh, T = get_masks(image)
@@ -62,7 +60,6 @@ def extract_masks(image):
         masks[i] = (masks[i] - np.min(masks[i])) / (np.max(masks[i]) - np.min(masks[i]))
         masks[i] = np.clip(masks[i], 0, 1)*0.25
     return Cm, Ch, skin, face
-
 
 # apply masks and transformations to target's latent space
 def apply_transforms(target_image, mel_aged, oxy_aged, skin, face):
