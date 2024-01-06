@@ -61,7 +61,7 @@ def extract_masks(image):
     for i in range(len(masks)):
         masks[i] = (masks[i] - np.min(masks[i])) / (np.max(masks[i]) - np.min(masks[i]))
         masks[i] = np.clip(masks[i], 0, 1)*0.25
-    return Cm, Ch, skin, face
+    return Cm, 1 - Ch, skin, face
 
 # apply masks and transformations to target's latent space
 def apply_transforms(target_image, mel_aged, oxy_aged, skin, face):

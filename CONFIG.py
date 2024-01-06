@@ -1,7 +1,7 @@
 import pathlib
-RUN_LOCAL = False
-ENCODER_PATH = "saved_models/316/decoder.h5"
-DECODER_PATH = "saved_models/316/decoder.h5"
+RUN_LOCAL = True
+ENCODER_PATH = None
+DECODER_PATH = None
 if RUN_LOCAL:
   ENCODER_PATH = r"saved_models/encoder.h5"
   DECODER_PATH = r"saved_models/decoder.h5"

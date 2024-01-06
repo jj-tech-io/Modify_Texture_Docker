@@ -26,8 +26,8 @@ def get_gpu_memory():
 
 try:
     # Use consistent Unix-style path separators
-    encoder_path = Path('/content/saved_models/encoder.h5')  # Adjust the path as needed
-    decoder_path = Path('/content/saved_models/decoder.h5')  # Adjust the path as needed
+    encoder_path = Path(CONFIG.ENCODER_PATH)  # Adjust the path as needed
+    decoder_path = Path(CONFIG.DECODER_PATH)  # Adjust the path as needed
 
     # Load the models
     print(f"Loading models from: \nEncoder: {encoder_path}\nDecoder: {decoder_path}")
