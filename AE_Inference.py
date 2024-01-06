@@ -24,12 +24,24 @@ def get_gpu_memory():
     memory_total = int(memory_total_str) * 1024 * 1024
     return memory_total
 
-working_dir = os.getcwd()
-encoder_path = Path(CONFIG.ENCODER_PATH)
-decoder_path = Path(CONFIG.DECODER_PATH)
-encoder = load_model(encoder_path)
-decoder = load_model(decoder_path)
+try:
+    # Make sure the working directory is correct if your paths in CONFIG are relative
+    working_dir = os.getcwd()
+    print(f"Working directory: {working_dir}")
 
+    # Construct the full path to the encoder and decoder models
+    encoder_path = os.path.join(working_dir, CONFIG.ENCODER_PATH)
+    decoder_path = os.path.join(working_dir, CONFIG.DECODER_PATH)
+
+    # Load the models
+    print(f"Loading models from: \nEncoder: {encoder_path}\nDecoder: {decoder_path}")
+    encoder = load_model(encoder_path)
+    decoder = load_model(decoder_path)
+    print("Models loaded successfully.")
+except FileNotFoundError as fnf_error:
+    print(fnf_error)
+except Exception as e:
+    print(f"An error occurred: {e}")
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 def reverse_gamma_correction(img):
     """Reverse gamma correction on an image."""
