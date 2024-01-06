@@ -30,8 +30,8 @@ try:
     print(f"Working directory: {working_dir}")
 
     # Construct the full path to the encoder and decoder models
-    encoder_path = os.path.join(working_dir, CONFIG.ENCODER_PATH)
-    decoder_path = os.path.join(working_dir, CONFIG.DECODER_PATH)
+    encoder_path = CONFIG.ENCODER_PATH
+    decoder_path = CONFIG.DECODER_PATH
 
     # Load the models
     print(f"Loading models from: \nEncoder: {encoder_path}\nDecoder: {decoder_path}")
