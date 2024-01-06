@@ -1,27 +1,25 @@
-# Use TensorFlow with GPU support as the parent image
-FROM tensorflow/tensorflow:devel-gpu
+# Base image with TensorFlow and GPU support
+FROM tensorflow/tensorflow:devel-gpu-jupyter
 
-# Set the working directory in the container to /app
+# Set the working directory
 WORKDIR /app
 
-# Install system dependencies, including Xvfb for headless GUI and python3-tk for tkinter
+# Install system dependencies
 RUN apt-get update && \
     apt-get install -y xvfb python3-tk && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies from requirements.txt
+# Copy requirements.txt and install Python dependencies
 COPY requirements.txt /app/
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Set up the display environment variable for headless GUI
+# Set up environment variables
 ENV DISPLAY=:99
-# Set up for tkinter display
 ENV PYTHONUNBUFFERED=1
 
-# Copy the rest of your application into the container
+# Copy the application code into the container
 COPY . /app
-
 
 # You can add other heavy installations here if needed
 

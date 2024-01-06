@@ -17,8 +17,9 @@ import mediapipe as mp
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import face_mesh as mp_face_mesh
 import random
-import main
-from main import *
+
+import morph
+
 
 LIPS = frozenset([
     # Lips.
@@ -476,7 +477,7 @@ def create_combined_mask(image):
         return combined_mask, lips, eyes, nose, eye_bags, face, landmark_object, av_skin_color
 
 def extract_face_skin_area(img):
-    landmarks_points = get_landmarks(img)
+    landmarks_points = morph.get_landmarks(img)
     # Convert image to HSV
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
