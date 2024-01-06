@@ -1,10 +1,16 @@
-# Use the base image that you've already built with Xvfb and other dependencies
-FROM modify-texture-app
-# Expose the port your application listens on
-EXPOSE 8080
-# Start Xvfb in the background and then run your main application
+# Use the base image from the previous step
+FROM modify-texture-app-base
+
+# Set the working directory (if needed, though it should be /app from the base image)
+WORKDIR /app
+
+# Expose the port the application listens on (if the app has a web interface)
+EXPOSE 8888
+
+# Start Xvfb in the background and then run your Jupyter notebook or application
 CMD Xvfb :99 -screen 0 1024x768x16 & \
-    python main.py
+    jupyter notebook --notebook-dir=/app --ip=0.0.0.0 --no-browser --allow-root
+
 # # build the image
 # docker build -t modify-texture-app .
 # # run the container

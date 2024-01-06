@@ -53,7 +53,7 @@ def encode(img):
         pred_maps = encoder.predict_on_batch(image)
         end = time.time()
         elapsed = end - start
-        print(f"shape of encoded {pred_maps.shape}")
+        # print(f"shape of encoded {pred_maps.shape}")
         return pred_maps, elapsed
     
 def decode(encoded):
@@ -76,7 +76,7 @@ def decode(encoded):
         
     # recovered = np.clip(recovered, 0, 1)
     recovered = gamma_correction(recovered)
-    print(f"shape of decoded {recovered.shape}")
+    # print(f"shape of decoded {recovered.shape}")
     return recovered, elapsed
 
 
