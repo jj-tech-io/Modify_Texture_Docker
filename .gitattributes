@@ -1,0 +1,4 @@
+textures filter=lfs diff=lfs merge=lfs -text
+C:/Users/joeli/Dropbox/Code/Python[[:space:]]Projects/Modify_Texture_Docker/textures/m32_8k.png filter=lfs diff=lfs merge=lfs -text
+textures/* filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
