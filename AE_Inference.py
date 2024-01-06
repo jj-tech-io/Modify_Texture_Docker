@@ -25,13 +25,9 @@ def get_gpu_memory():
     return memory_total
 
 try:
-    # Make sure the working directory is correct if your paths in CONFIG are relative
-    working_dir = os.getcwd()
-    print(f"Working directory: {working_dir}")
-
-    # Construct the full path to the encoder and decoder models
-    encoder_path = CONFIG.ENCODER_PATH
-    decoder_path = CONFIG.DECODER_PATH
+    # Use consistent Unix-style path separators
+    encoder_path = Path('/content/saved_models/encoder.h5')  # Adjust the path as needed
+    decoder_path = Path('/content/saved_models/decoder.h5')  # Adjust the path as needed
 
     # Load the models
     print(f"Loading models from: \nEncoder: {encoder_path}\nDecoder: {decoder_path}")
@@ -42,6 +38,10 @@ except FileNotFoundError as fnf_error:
     print(fnf_error)
 except Exception as e:
     print(f"An error occurred: {e}")
+
+# Use variables/functions directly from CONFIG, not CONFIG.CONFIG
+encoder_path = CONFIG.ENCODER_PATH
+decoder_path = CONFIG.DECODER_PATH
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 def reverse_gamma_correction(img):
     """Reverse gamma correction on an image."""
