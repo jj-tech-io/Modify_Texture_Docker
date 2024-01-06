@@ -1,7 +1,8 @@
-*.png
-*.jpg
-*.ipynb
 *.pyc
-*.pyc
-*.pyc
-*.pyc
+saved_models/2024_01_03/output.png
+saved_models/no_duplicates_75_2_mask/no_duplicates.png
+textures/template_base_uv.png
+textures/m32_8k.png
+textures/m53_4k.png
+textures/m32_2k.png
+textures/1_neutral.jpg
