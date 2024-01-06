@@ -70,11 +70,11 @@ def apply_transforms(target_image, mel_aged, oxy_aged, skin, face):
 
 if __name__ == '__main__':
     working_dir = os.getcwd()
-    example_texture_path = r"textures/m32_8k.png"
-    example_texture_path = Path(working_dir, example_texture_path)
+    example_texture_path = "textures/m32_8k.png"
+    # example_texture_path = Path(working_dir, example_texture_path)
     # target_texture_path = r"textures\template_base_uv.png"
-    target_texture_path = r"textures/1_neutral.jpg"
-    target_texture_path = r"textures/m53_4k.png"
+    target_texture_path = "textures/1_neutral.jpg"
+    target_texture_path = "textures/m53_4k.png"
     target_texture_path = Path(working_dir, target_texture_path)
     warped_example_image, target_image, example_image = morph_images(Path(example_texture_path), Path(target_texture_path))
     Cm, Bh, skin, face = extract_masks(warped_example_image)
