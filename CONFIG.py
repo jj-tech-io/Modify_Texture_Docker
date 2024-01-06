@@ -16,3 +16,5 @@ else:
   DECODER_PATH = "/content/Modify_Texture_Docker/saved_models/no_duplicates_75_2_mask/decoder.h5"
   ENCODER_PATH = "saved_models/316/decoder.h5"
   DECODER_PATH = "saved_models/316/decoder.h5"
+  ENCODER_PATH = "saved_models/no_duplicates_75_2_mask/encoder.h5"
+  DECODER_PATH = "saved_models/no_duplicates_75_2_mask/decoder.h5"
