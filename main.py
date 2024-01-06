@@ -4,6 +4,7 @@ from tkinter import *
 from tkinter.ttk import *
 import importlib
 import sys
+test = 1
 sys.path.append('morph')
 sys.path.append('AE_Inference')
 sys.path.append('transform_objects')
