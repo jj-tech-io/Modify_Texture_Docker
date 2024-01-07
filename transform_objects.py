@@ -19,9 +19,10 @@ importlib.reload(AE_Inference)
 
 
 class SkinParameterAdjustmentApp:
-    def __init__(self, image, mel_aged, oxy_aged, skin, face):
+    def __init__(self, image, mel_aged, oxy_aged, skin, face, oxy_mask):
         self.skin = cv2.resize(skin, (512, 512))
         self.face = cv2.resize(face, (512, 512))
+        self.oxy_mask = cv2.resize(oxy_mask, (512, 512))
         self.original_label = None
         self.modified_label = None
         self.encoder = None
@@ -75,7 +76,7 @@ class SkinParameterAdjustmentApp:
         oxy_aged = cv2.bitwise_not(oxy_aged)
         oxy_aged = cv2.GaussianBlur(oxy_aged, (15, 15), 0)
         oxy_aged = oxy_aged / np.max(np.abs(oxy_aged))
-        oxy_aged *= 0.1
+        oxy_aged *= 0.5
 
         mel_aged = mel_aged.reshape(-1, )
         oxy_aged = oxy_aged.reshape(-1, )
@@ -165,7 +166,12 @@ class SkinParameterAdjustmentApp:
         parameter_maps[:, 0] = cm_new
         if changed_slider == 'bh_mask':
             print(f"bh_mask: {bh_mask_slider}")
-        parameter_maps[:, 1] = (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1]
+        # parameter_maps[:, 1] = (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1]
+        #only apply mask to eyes and lips
+        # print(f"shape skin {self.skin.shape}, shape face {self.face.shape}, shape bh_mask {bh_mask_slider.shape}, shape oxy_aged {self.oxy_aged.shape}, shape parameter_maps {parameter_maps.shape}")
+        print(f"shape skin {np.asarray(self.skin).shape}, shape face {np.asarray(self.face).shape}, shape oxy_aged {np.asarray(self.oxy_aged).shape}, shape parameter_maps {np.asarray(parameter_maps).shape}")
+        # parameter_maps[:, 1] = np.where(self.skin[:,:,0].reshape(-1) != 0, 0, (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1])
+        parameter_maps[:, 3] = np.where(self.oxy_mask.reshape(-1) == 0, parameter_maps[:, 3], (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 3])
 
         recovered, decode_time = decode(parameter_maps)
         recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3)) * 255

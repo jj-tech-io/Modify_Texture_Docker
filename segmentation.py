@@ -19,7 +19,7 @@ from mediapipe.python.solutions import face_mesh as mp_face_mesh
 import random
 
 import morph
-
+import AE_Inference
 
 LIPS = frozenset([
     # Lips.
@@ -450,7 +450,7 @@ def create_combined_mask(image):
             positions[key] = (x, y)
 
          #dilate eyes
-        kernel = np.ones((15,15),np.uint8)
+        kernel = np.ones((25,25),np.uint8)
         eyes = cv2.dilate(eyes,kernel,iterations = 3)
         eyes = cv2.erode(eyes,kernel,iterations = 3)
 
@@ -462,7 +462,6 @@ def create_combined_mask(image):
         face = generate_mask(image, face_landmarks, draw_lines, FACE_OVAL)
         # Combine masks
         combined_mask = cv2.bitwise_or(lips, eyes)
-        combined_mask = cv2.bitwise_or(combined_mask, nose)
         combined_mask = cv2.bitwise_not(combined_mask)
         annotated_image = image.copy()  # Copy of the original image for annotations
         all_landmarks = np.concatenate([LIPS, EYES, NOSTRILS, EYEBROWS])
@@ -474,7 +473,9 @@ def create_combined_mask(image):
         #av non masked skin color
         mask_boolean = combined_mask > 0
         av_skin_color = np.mean(image[mask_boolean], axis=0)
-        return combined_mask, lips, eyes, nose, eye_bags, face, landmark_object, av_skin_color
+        # oxy mask = skin[;,:,0] + eyes + lips
+        oxy_mask = cv2.bitwise_or(np.asarray(eyes, dtype=np.uint8), np.asarray(lips, dtype=np.uint8))
+        return combined_mask, lips, eyes, nose, eye_bags, face,oxy_mask, landmark_object, av_skin_color
 
 def extract_face_skin_area(img):
     landmarks_points = morph.get_landmarks(img)
@@ -516,7 +517,9 @@ def threshold_face_skin_area(img,av_skin_color,mask=None):
 
     # Create a binary mask where the skin color is within the threshold
     skinMask = cv2.inRange(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), LOWER_THRESHOLD, UPPER_THRESHOLD)
-
+    #heavy blur
+    skinMask = cv2.GaussianBlur(skinMask, (25, 25), 0)
+    skinMask = cv2.GaussianBlur(skinMask, (25, 25), 0)
     # Extract skin regions using the mask
     skin = cv2.bitwise_or(img, img, mask=skinMask)
     if mask is not None:
@@ -531,17 +534,17 @@ if __name__ == '__main__':
     image = cv2.resize(image, (4096, 4096))
 
     combined_mask = create_combined_mask(image)
-    Cm, Ch, Bm, Bh, T = get_masks(image)
+    Cm, Ch, Bm, Bh, T = AE_Inference.get_masks(image)
     #save Cm, Ch, Bm, Bh, T
     cv2.imwrite('Cm.png', Cm*255)
     cv2.imwrite('Ch.png', Ch*255)
     cv2.imwrite('Bm.png', Bm*255)
     cv2.imwrite('Bh.png', Bh*255)
     cv2.imwrite('T.png', T*255)
-    combined_mask, lips, eyes, nose, eye_bags, face, landmark_object, av_skin_color = create_combined_mask(image)
+    combined_mask, lips, eyes, nose, eye_bags, face,oxy_mask, landmark_object, av_skin_color = create_combined_mask(image)
     skin = threshold_face_skin_area(image,av_skin_color,mask=combined_mask)
-    masks = [Cm, Ch, Bm, Bh, T]
-    fig, ax = plt.subplots(1, 5, figsize=(12, 4))
+    masks = [ lips, eyes, nose, eye_bags, face, skin, oxy_mask]
+    fig, ax = plt.subplots(1, len(masks), figsize=(20, 20))
     for i, mask in enumerate(masks):
         ax[i].imshow(mask, cmap='gray')
     plt.show()
