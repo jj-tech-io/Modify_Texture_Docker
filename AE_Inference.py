@@ -28,9 +28,16 @@ encoder = None
 decoder = None
 encoder_path = CONFIG.ENCODER_PATH
 decoder_path = CONFIG.DECODER_PATH
+
 try:
-    encoder = load_model(Path(encoder_path).as_posix())
-    decoder = load_model(Path(decoder_path).as_posix())
+    if CONFIG.RUN_LOCAL:
+        encoder = load_model(Path(encoder_path).as_posix())
+        decoder = load_model(Path(decoder_path).as_posix())
+    else:
+
+        encoder = load_model(encoder_path)
+        decoder = load_model(decoder_path)
+
 except Exception as e:
     print(f"An error occurred: {e}")
     sys.exit(1)
