@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import time
 import subprocess
@@ -21,27 +22,22 @@ def get_gpu_memory():
     # Decode the output to UTF-8 and parse the memory value
     memory_total_str = result.stdout.decode('utf-8').strip()
     # Assuming the output is in MiB, which is usual for nvidia-smi, convert to bytes
-    memory_total = int(memory_total_str) * 1024 * 1024
+    memory_total = int(memory_total_str) * 1024 * 1024* 16
     return memory_total
-
-try:
-    # Use consistent Unix-style path separators
-    encoder_path = Path(CONFIG.ENCODER_PATH)  # Adjust the path as needed
-    decoder_path = Path(CONFIG.DECODER_PATH)  # Adjust the path as needed
-
-    # Load the models
-    print(f"Loading models from: \nEncoder: {encoder_path}\nDecoder: {decoder_path}")
-    encoder = load_model(encoder_path)
-    decoder = load_model(decoder_path)
-    print("Models loaded successfully.")
-except FileNotFoundError as fnf_error:
-    print(fnf_error)
-except Exception as e:
-    print(f"An error occurred: {e}")
-
-# Use variables/functions directly from CONFIG, not CONFIG.CONFIG
+encoder = None
+decoder = None
 encoder_path = CONFIG.ENCODER_PATH
 decoder_path = CONFIG.DECODER_PATH
+try:
+    encoder = load_model(Path(encoder_path).as_posix())
+    decoder = load_model(Path(decoder_path).as_posix())
+except Exception as e:
+    print(f"An error occurred: {e}")
+    sys.exit(1)
+
+# # Use variables/functions directly from CONFIG, not CONFIG.CONFIG
+# encoder_path = CONFIG.ENCODER_PATH
+# decoder_path = CONFIG.DECODER_PATH
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 def reverse_gamma_correction(img):
     """Reverse gamma correction on an image."""

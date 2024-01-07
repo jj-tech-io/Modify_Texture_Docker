@@ -38,6 +38,8 @@ class SkinParameterAdjustmentApp:
 
     def init_app(self):
         self.root = tk.Tk()
+        self.root.configure(background='black')
+        self.root["bg"] = "black"
         self.root.title("Interactive Skin Parameter Adjustment")
         self.create_gui()
 
@@ -252,8 +254,6 @@ class SkinParameterAdjustmentApp:
 
         # make window resizable
         self.root.resizable(True, True)
-        #black background
-        self.root.configure(background='black')
         self.update_plot()
 
     def run(self):
