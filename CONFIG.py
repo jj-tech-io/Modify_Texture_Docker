@@ -1,6 +1,6 @@
 import pathlib 
 import os
-RUN_LOCAL = True
+RUN_LOCAL = False
 ENCODER_PATH = None
 DECODER_PATH = None
 CWD = pathlib.Path.cwd()
