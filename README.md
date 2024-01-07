@@ -2,7 +2,7 @@
 
 A brief description of what this project does and who it's for. This project is tailored for those interested in manipulating and modifying textures on 3D models using Python in a Docker container environment.
 - **Spatially Aware Transformations**: Learned from example images for detailed and accurate skin textures.
-[Watch the Modify Texture Demo Video]([https://clipchamp.com/watch/W12SR9O47z4](https://clipchamp.com/watch/Dd9VPEmj6Os))
+[!Watch the Modify Texture Demo Video](https://clipchamp.com/watch/Dd9VPEmj6Os)](https://clipchamp.com/watch/Dd9VPEmj6Os))
 ## Prerequisites
 
 Before you begin, ensure you have met the following requirements:
