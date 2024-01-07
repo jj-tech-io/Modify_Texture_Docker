@@ -49,7 +49,6 @@ def morph_images(example_image_path, target_image_path):
 def extract_masks(image):
     Cm, Ch, Bm, Bh, T = get_masks(image)
     landmarks = get_landmarks(image)
-    #inverted masks
     combined_mask, lips, eyes, nose, eye_bags, face,oxy_mask, landmark_object, av_skin_color = create_combined_mask(image)
     skin = threshold_face_skin_area(image,av_skin_color,mask=combined_mask)
     #Cm and with combined mask

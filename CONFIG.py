@@ -4,6 +4,7 @@ RUN_LOCAL = True
 ENCODER_PATH = None
 DECODER_PATH = None
 CWD = pathlib.Path.cwd()
+RUN_LOCAL = input("Run local? (y/n)") == "y"
 if RUN_LOCAL:
     ENCODER_PATH = r"saved_models/encoder.h5"
     DECODER_PATH = r"saved_models/decoder.h5"
