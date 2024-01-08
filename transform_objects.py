@@ -3,6 +3,7 @@ import sys
 import time
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +12,8 @@ from PIL import Image, ImageTk
 from tensorflow.keras.models import load_model
 import CONFIG
 from pathlib import Path
-
+import main
+from main import *
 importlib.reload(CONFIG)
 sys.path.append(r"AE_Inference")
 import AE_Inference
@@ -107,7 +109,7 @@ class SkinParameterAdjustmentApp:
         self.oxy_aged_4k = cv2.resize(oxy_aged.reshape((self.WIDTH, self.HEIGHT)), (self.WIDTH, self.WIDTH))
         self.parameter_maps_original_4k, self.encode_time_4k = encode(self.original_4k.reshape(-1, 3) / 255.0)
 
-    def create_slider(self, parent, label, from_, to, resolution, default_value):
+    def create_slider1(self, parent, label, from_, to, resolution, default_value):
         frame = ttk.Frame(parent)
         label = ttk.Label(frame, text=label)
         label.pack(side=tk.LEFT)
@@ -116,7 +118,24 @@ class SkinParameterAdjustmentApp:
         slider.pack(side=tk.RIGHT, fill=tk.X, expand=True)
         frame.pack()
         return slider
+    def create_slider(self, parent, label_text, from_, to, resolution, default_value):
+        frame = ttk.Frame(parent)
+        
+        # Place the frame itself in the parent's grid
+        frame.grid(sticky='ew')
+        parent.grid_columnconfigure(0, weight=1)  # This makes the frame expand to fill the grid cell
+        
+        # Create label and slider within the frame using grid layout
+        label = ttk.Label(frame, text=label_text)
+        label.grid(row=0, column=0, sticky='w')  # Align label to the left (west)
 
+        slider = tk.Scale(frame, from_=from_, to=to, orient='horizontal', length=200, resolution=resolution)
+        slider.set(default_value)
+        slider.grid(row=0, column=1, sticky='ew')  # Align slider to the right, expand horizontally
+
+        frame.grid_columnconfigure(1, weight=1)  # This allows the slider to expand
+
+        return slider
     def save_4k_image(self):
         self.update_images(self.original_image, self.modified_image, save=True)
 
@@ -195,6 +214,34 @@ class SkinParameterAdjustmentApp:
         else:
             self.modified_label.configure(image=modified_photo)
             self.modified_label.image = modified_photo
+    def load_new_image(self):
+        # Open the file dialog to select an image
+        file_path = filedialog.askopenfilename(title="Select an image",
+                                               filetypes=(("png files", "*.png"), ("jpeg files", "*.jpg"), ("all files", "*.*")))
+
+        working_dir = os.getcwd()
+        #age example texture
+        example_texture_path = "textures/m32_8k.png"
+        #texture to be modified
+        target_texture_path = file_path
+        warped_example_image, target_image, example_image = morph_images(Path(working_dir, example_texture_path), Path(target_texture_path))
+        Cm, Bh, skin, face, oxy_mask = extract_masks(warped_example_image)
+        if file_path:  # If a file was selected
+            print(f"Selected image: {file_path}")
+            # Here you can call your morph_images and extract_masks functions
+            warped_example_image, target_image, example_image = morph_images(Path(example_texture_path), Path(file_path))
+            Cm, Bh, skin, face, oxy_mask = extract_masks(warped_example_image)
+            # Update the app's image attributes
+            self.image = target_image
+            self.mel_aged = Cm
+            self.oxy_aged = Bh
+            self.skin = skin
+            self.face = face
+            self.oxy_mask = oxy_mask
+            self.original_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB).astype(np.float32)
+            self.modified_image = target_image
+            self.load_images()
+            self.update_plot()  # This is just a placeholder for whatever update you need to do
 
     def create_gui(self):
         self.frame_sliders = ttk.Frame(self.root)
@@ -226,16 +273,67 @@ class SkinParameterAdjustmentApp:
         self.cm_mask_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('cm_mask'))
         self.bh_mask_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('bh_mask'))
         self.save_button.bind("<ButtonRelease-1>", lambda event: self.save_4k_image())
-
+        #add load image button
+        load_image_button = ttk.Button(self.frame_buttons, text="Load New Image", command=self.load_new_image)
+        load_image_button.pack(side=tk.LEFT, padx=5, pady=5)
         # make window resizable
         self.root.resizable(True, True)
         #size window
         self.root.geometry("1100x900")
         #window top left corner
         self.root.geometry("+0+0")
-        #full screen + center components
-
         self.update_plot()
+    def create_gui1(self):
+        # Make the window fullscreen
+        self.root.state('zoomed')
 
+        # Configure the grid layout
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)
+
+        # Initialize frames with grid layout
+        self.frame_sliders = ttk.Frame(self.root)
+        self.frame_sliders.grid(row=0, column=0, sticky="ew", padx=10)
+        self.frame_images = ttk.Frame(self.root)
+        self.frame_images.grid(row=1, column=0, sticky="nsew")
+        self.frame_buttons = ttk.Frame(self.root)
+        self.frame_buttons.grid(row=2, column=0, sticky="ew")
+
+        # Configure the frame's column so that it expands equally
+        self.frame_sliders.grid_columnconfigure(0, weight=1)
+
+        # Create sliders and place them in the grid
+        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.1, 2.0)
+        self.cm_slider = self.create_slider(self.frame_sliders, "Cm:", 0, 2, 0.1, 1)
+        self.ch_slider = self.create_slider(self.frame_sliders, "Ch:", 0, 2, 0.1, 1)
+        self.bm_slider = self.create_slider(self.frame_sliders, "Bm:", 0, 2, 0.1, 1)
+        self.bh_slider = self.create_slider(self.frame_sliders, "Bh:", 0, 2, 0.1, 0.9)
+        self.t_slider = self.create_slider(self.frame_sliders, "T:", 0, 2, 0.1, 1)
+        self.cm_mask_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", -1, 1, 0.1, 0.6)
+        self.bh_mask_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", -1, 1, 0.1, 0.1)
+
+
+        # Place the sliders evenly in the grid
+        slider_names = ['age_coef', 'cm', 'ch', 'bm', 'bh', 't', 'cm_mask', 'bh_mask']
+        for i, name in enumerate(slider_names):
+            getattr(self, f"{name}_slider").grid(row=0, column=i, padx=5, pady=5, sticky="ew")
+
+        # Add load image button
+        load_image_button = ttk.Button(self.frame_buttons, text="Load New Image", command=self.load_new_image)
+        load_image_button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+        # Add save button
+        self.save_button = ttk.Button(self.frame_buttons, text="Save 4K Image", command=self.save_4k_image)
+        self.save_button.grid(row=0, column=1, padx=5, pady=5, sticky="e")
+
+        # Bind the sliders to the update function
+        for name in slider_names:
+            getattr(self, f"{name}_slider").bind("<ButtonRelease-1>", lambda event, name=name: self.update_plot(changed_slider=name))
+        self.root.geometry("1100x900")
+        #window top left corner
+        self.root.geometry("+0+0")
+        #full screen + center components
+        # Update plot
+        self.update_plot()
     def run(self):
         self.root.mainloop()

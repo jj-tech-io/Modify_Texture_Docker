@@ -39,6 +39,7 @@ def morph_images(example_image_path, target_image_path):
     landmarks2 = get_landmarks(target_image)
     warped_example_image, delaunay, transformation_matrices = warp_image(example_image, target_image,
         landmarks1, landmarks2)
+
     return warped_example_image, target_image, example_image
 
 def extract_masks(image):
