@@ -22,7 +22,7 @@ def get_gpu_memory():
     # Decode the output to UTF-8 and parse the memory value
     memory_total_str = result.stdout.decode('utf-8').strip()
     # Assuming the output is in MiB, which is usual for nvidia-smi, convert to bytes
-    memory_total = int(memory_total_str) * 1024 * 1024* 16
+    memory_total = int(memory_total_str) * 1024 * 1024* 22
     return memory_total
 encoder = None
 decoder = None
@@ -76,8 +76,7 @@ def decode(encoded):
     if np.max(recovered) > 2:
         #norm 0-1
         # recovered = (recovered - np.min(recovered)) / (np.max(recovered) - np.min(recovered))
-        recovered = recovered / 255.0
-        
+        recovered = recovered / 255.0 
     # recovered = np.clip(recovered, 0, 1)
     recovered = gamma_correction(recovered)
     # print(f"shape of decoded {recovered.shape}")

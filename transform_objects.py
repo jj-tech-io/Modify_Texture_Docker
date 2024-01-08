@@ -22,12 +22,14 @@ importlib.reload(AE_Inference)
 class SkinParameterAdjustmentApp:
     def __init__(self, image, mel_aged, oxy_aged, skin, face, oxy_mask, save_name="recovered"):
         self.save_name = save_name
+        self.WIDTH = 4096
+        self.HEIGHT = 4096
         try:
-            self.skin = cv2.resize(skin, (4096, 4096))
-            self.face = cv2.resize(face, (4096, 4096))
-            self.oxy_mask = cv2.resize(oxy_mask, (4096, 4096))
-            self.mel_aged = cv2.resize(mel_aged, (4096, 4096))
-            self.oxy_aged = cv2.resize(oxy_aged, (4096, 4096))
+            self.skin = cv2.resize(skin, (self.WIDTH, self.HEIGHT))
+            self.face = cv2.resize(face, (self.WIDTH, self.HEIGHT))
+            self.oxy_mask = cv2.resize(oxy_mask, (self.WIDTH, self.HEIGHT))
+            self.mel_aged = cv2.resize(mel_aged, (self.WIDTH, self.HEIGHT))
+            self.oxy_aged = cv2.resize(oxy_aged, (self.WIDTH, self.HEIGHT))
             assert self.oxy_mask.shape == self.mel_aged.shape == self.oxy_aged.shape, "Error: Image shapes do not match"
             assert np.isnan(self.oxy_aged).any() == False and np.isnan(self.mel_aged).any() == False and np.isnan(self.skin).any() == False and np.isnan(self.face).any() == False and np.isnan(self.oxy_mask).any() == False, "Error: NaN values in image"
         except Exception as e:
@@ -40,8 +42,6 @@ class SkinParameterAdjustmentApp:
         self.image = image
         self.mel_aged = mel_aged
         self.oxy_aged = oxy_aged
-        self.WIDTH = 4096
-        self.HEIGHT = 4096
         self.load_models()
         self.load_images()
         self.init_app()
@@ -131,8 +131,6 @@ class SkinParameterAdjustmentApp:
         scale_t = self.t_slider.get()
         cm_mask_slider = self.cm_mask_slider.get()
         bh_mask_slider = self.bh_mask_slider.get()
-        global_scaling_maps = self.global_scaling_maps_slider.get()
-        global_scaling_masks = self.global_scaling_masks_slider.get()
         parameter_maps[:, 0] = age_mel(parameter_maps[:, 0], age_coef)
         parameter_maps[:, 1] = age_hem(parameter_maps[:, 1], age_coef)
         parameter_maps[:, 0] = scale_c_m * parameter_maps[:, 0]
@@ -142,13 +140,11 @@ class SkinParameterAdjustmentApp:
         parameter_maps[:, 4] = scale_t * parameter_maps[:, 4]
         cm_new =  (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 0]
         parameter_maps[:, 0] = cm_new
-
         #only apply mask to eyes and lips
         print(f"shape skin {np.asarray(self.skin).shape}, shape face {np.asarray(self.face).shape}, shape oxy_aged {np.asarray(self.oxy_aged).shape}, shape parameter_maps {np.asarray(parameter_maps).shape}")
         # parameter_maps[:, 1] = np.where(self.skin[:,:,0].reshape(-1) != 0, 0, (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1])
         print(f"abs(bh_mask_slider * self.oxy_aged.reshape(-1)) = {bh_mask_slider * self.oxy_aged}")
         try:
-
             # bh_new = bh_mask_slider * self.oxy_aged.reshape(-1) + (1-bh_mask_slider)*parameter_maps[:, 3]
             bh_new = np.where(self.oxy_mask.reshape(-1) != 0, parameter_maps[:, 3], (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 3])
             parameter_maps[:, 3] = bh_new
@@ -209,20 +205,18 @@ class SkinParameterAdjustmentApp:
         self.frame_images = ttk.Frame(self.root)
         self.frame_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.1,2.0)
-        self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "Map(s):", 0, 2, 0.1, 1.0)
-        self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "Mask(s):", 0, 2, 0.1, 1.0)
+
         self.cm_slider = self.create_slider(self.frame_sliders, "Cm:", 0, 2, 0.1, 1)
         self.ch_slider = self.create_slider(self.frame_sliders, "Ch:", 0, 2, 0.1, 1)
         self.bm_slider = self.create_slider(self.frame_sliders, "Bm:", 0, 2, 0.1, 1)
-        self.bh_slider = self.create_slider(self.frame_sliders, "Bh:", 0, 2, 0.1, 1)
+        self.bh_slider = self.create_slider(self.frame_sliders, "Bh:", 0, 2, 0.1, 0.9)
         self.t_slider = self.create_slider(self.frame_sliders, "T:", 0, 2, 0.1, 1)
         self.cm_mask_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", -1, 1, 0.1, 0.6)
         self.bh_mask_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", -1, 1, 0.1, 0.1)
         self.save_button = ttk.Button(self.frame_buttons, text="Save 4K Image", command=self.save_4k_image)
         self.save_button.pack(side=tk.RIGHT, padx=5, pady=5)
         self.age_coef_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='age_coef'))
-        self.global_scaling_maps_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='global_scaling_maps'))
-        self.global_scaling_masks_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='global_scaling_masks'))
+
         # Correct the bindings to use the correct button release event and the slider name
         self.cm_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('cm'))
         self.ch_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('ch'))
@@ -236,7 +230,11 @@ class SkinParameterAdjustmentApp:
         # make window resizable
         self.root.resizable(True, True)
         #size window
-        self.root.geometry("700x700")
+        self.root.geometry("1100x900")
+        #window top left corner
+        self.root.geometry("+0+0")
+        #full screen + center components
+
         self.update_plot()
 
     def run(self):
