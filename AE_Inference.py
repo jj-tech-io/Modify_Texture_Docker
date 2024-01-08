@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import time
 import subprocess
@@ -21,28 +22,27 @@ def get_gpu_memory():
     # Decode the output to UTF-8 and parse the memory value
     memory_total_str = result.stdout.decode('utf-8').strip()
     # Assuming the output is in MiB, which is usual for nvidia-smi, convert to bytes
-    memory_total = int(memory_total_str) * 1024 * 1024
+    memory_total = int(memory_total_str) * 1024 * 1024* 22
     return memory_total
-
-try:
-    # Use consistent Unix-style path separators
-    encoder_path = Path(CONFIG.ENCODER_PATH)  # Adjust the path as needed
-    decoder_path = Path(CONFIG.DECODER_PATH)  # Adjust the path as needed
-
-    # Load the models
-    print(f"Loading models from: \nEncoder: {encoder_path}\nDecoder: {decoder_path}")
-    encoder = load_model(encoder_path)
-    decoder = load_model(decoder_path)
-    print("Models loaded successfully.")
-except FileNotFoundError as fnf_error:
-    print(fnf_error)
-except Exception as e:
-    print(f"An error occurred: {e}")
-
-# Use variables/functions directly from CONFIG, not CONFIG.CONFIG
+encoder = None
+decoder = None
 encoder_path = CONFIG.ENCODER_PATH
 decoder_path = CONFIG.DECODER_PATH
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+
+try:
+    if CONFIG.RUN_LOCAL:
+        encoder = load_model(Path(encoder_path).as_posix())
+        decoder = load_model(Path(decoder_path).as_posix())
+    else:
+
+        encoder = load_model(encoder_path)
+        decoder = load_model(decoder_path)
+
+except Exception as e:
+    print(f"An error occurred: {e}")
+    sys.exit(1)
+
+
 def reverse_gamma_correction(img):
     """Reverse gamma correction on an image."""
     return np.where(img > 0.04045, ((img + 0.055) / 1.055) ** 2.4, img / 12.92)
@@ -53,11 +53,7 @@ def gamma_correction(img):
 def encode(img):
     image = np.asarray(img).reshape(-1,3).astype('float32')
     if np.max(image) > 1:
-        print(f"max image {np.max(image)}")
-        print(f"min image {np.min(image)}")
         image = image / 255.0
-        print(f"max image {np.max(image)}")
-        print(f"min image {np.min(image)}")
     # pred_maps = encoder.predict(image)
     image = reverse_gamma_correction(image)
     start = time.time()
@@ -79,13 +75,8 @@ def decode(encoded):
     elapsed = end - start
     if np.max(recovered) > 2:
         #norm 0-1
-        print(f"max recovered {np.max(recovered)}")
-        print(f"min recovered {np.min(recovered)}")
         # recovered = (recovered - np.min(recovered)) / (np.max(recovered) - np.min(recovered))
-        recovered = recovered / 255.0
-        print(f"max recovered {np.max(recovered)}")
-        print(f"min recovered {np.min(recovered)}")
-        
+        recovered = recovered / 255.0 
     # recovered = np.clip(recovered, 0, 1)
     recovered = gamma_correction(recovered)
     # print(f"shape of decoded {recovered.shape}")
@@ -121,31 +112,18 @@ def get_masks(image):
     image = cv2.resize(image, (WIDTH, HEIGHT))
     parameter_maps, elapsed = encode(image)
     Cm = parameter_maps[:, 0].reshape(WIDTH, HEIGHT)
-    # normalize 0-1
-    print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)}")
     Cm = (Cm - np.min(Cm)) / (np.max(Cm) - np.min(Cm))
-    print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)}")
     Ch = parameter_maps[:, 1].reshape(WIDTH, HEIGHT)
-    # normalize 0-1
     Ch = (Ch - np.min(Ch)) / (np.max(Ch) - np.min(Ch))
-    print(f"min Ch: {np.min(Ch)} max Ch: {np.max(Ch)}")
     Bm = parameter_maps[:, 2].reshape(WIDTH, HEIGHT)
     Bm = (Bm - np.min(Bm)) / (np.max(Bm) - np.min(Bm))
-    print(f"min Bm: {np.min(Bm)} max Bm: {np.max(Bm)}")
     Bh = parameter_maps[:, 3].reshape(WIDTH, HEIGHT)
     Bh = (Bh - np.min(Bh)) / (np.max(Bh) - np.min(Bh))
-    print(f"min Bh: {np.min(Bh)} max Bh: {np.max(Bh)}")
     T = parameter_maps[:, 4].reshape(WIDTH, HEIGHT)
     T = (T - np.min(T)) / (np.max(T) - np.min(T))
-    # clip to 0-1
     Cm = np.clip(Cm, 0, 1)
-    # Cm = 1 - Cm
     Ch = np.clip(Ch, 0, 1)
-    # Ch = 1 - Ch
     Bm = np.clip(Bm, 0, 1)
-    # Bm = 1 - Bm
     Bh = np.clip(Bh, 0, 1)
-    # Bh = 1 - Bh
     T = np.clip(T, 0, 1)
-    # T = 1 - T
     return Cm, Ch, Bm, Bh, T

@@ -1,27 +1,28 @@
 # Base image with TensorFlow and GPU support
-FROM tensorflow/tensorflow:devel-gpu-jupyter
+FROM tensorflow/tensorflow:devel-gpu
 
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies for GUI and Tkinter
 RUN apt-get update && \
-    apt-get install -y xvfb python3-tk && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends xvfb x11vnc python3-tk && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy requirements.txt and install Python dependencies
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Set up environment variables
+# Set up environment variables for display
 ENV DISPLAY=:99
 ENV PYTHONUNBUFFERED=1
 
 # Copy the application code into the container
-COPY . /app
+COPY . /app/
 
-# You can add other heavy installations here if needed
+# Expose any necessary ports here if your application has a web interface
+# EXPOSE 8888
 
-## build the base image (python-base) to avoid installing the dependencies every time we build the image
-# docker build -f Dockerfile.base -t modify-texture-app .
+# Build command to create the base image
+# docker build -f Dockerfile.base -t modify-texture-app-base .

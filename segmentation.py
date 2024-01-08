@@ -451,8 +451,9 @@ def create_combined_mask(image):
 
          #dilate eyes
         kernel = np.ones((25,25),np.uint8)
-        eyes = cv2.dilate(eyes,kernel,iterations = 3)
+        eyes = cv2.dilate(eyes,kernel,iterations = 6)
         eyes = cv2.erode(eyes,kernel,iterations = 3)
+        
 
         nose = generate_mask(image, face_landmarks, draw_lines, NOSTRILS)
         #dilate nose
@@ -532,15 +533,8 @@ if __name__ == '__main__':
     image_path = r"textures\template_base_uv.png"
     image = cv2.imread(image_path)
     image = cv2.resize(image, (4096, 4096))
-
     combined_mask = create_combined_mask(image)
     Cm, Ch, Bm, Bh, T = AE_Inference.get_masks(image)
-    #save Cm, Ch, Bm, Bh, T
-    cv2.imwrite('Cm.png', Cm*255)
-    cv2.imwrite('Ch.png', Ch*255)
-    cv2.imwrite('Bm.png', Bm*255)
-    cv2.imwrite('Bh.png', Bh*255)
-    cv2.imwrite('T.png', T*255)
     combined_mask, lips, eyes, nose, eye_bags, face,oxy_mask, landmark_object, av_skin_color = create_combined_mask(image)
     skin = threshold_face_skin_area(image,av_skin_color,mask=combined_mask)
     masks = [ lips, eyes, nose, eye_bags, face, skin, oxy_mask]
