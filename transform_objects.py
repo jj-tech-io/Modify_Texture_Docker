@@ -23,6 +23,8 @@ importlib.reload(AE_Inference)
 
 class SkinParameterAdjustmentApp:
     def __init__(self, image, mel_aged, oxy_aged, skin, face, oxy_mask, save_name="recovered"):
+        self.example_texture_path = "textures/m32_8k.png"
+        self.target_texture_path = "textures/m53_4k.png"
         self.save_name = save_name
         self.WIDTH = 4096
         self.HEIGHT = 4096
@@ -214,34 +216,38 @@ class SkinParameterAdjustmentApp:
         else:
             self.modified_label.configure(image=modified_photo)
             self.modified_label.image = modified_photo
+    def load_new(self):
+        # Here you can call your morph_images and extract_masks functions
+        warped_example_image, target_image, example_image = morph_images(Path(self.example_texture_path), Path(self.target_texture_path))
+        Cm, Bh, skin, face, oxy_mask = extract_masks(warped_example_image)
+        # Update the app's image attributes
+        self.image = target_image
+        self.mel_aged = Cm
+        self.oxy_aged = Bh
+        self.skin = skin
+        self.face = face
+        self.oxy_mask = oxy_mask
+        self.original_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB).astype(np.float32)
+        self.modified_image = target_image
+        self.load_images()
+        self.update_plot()  # This is just a placeholder for whatever update you need to do
+
     def load_new_image(self):
         # Open the file dialog to select an image
         file_path = filedialog.askopenfilename(title="Select an image",
                                                filetypes=(("png files", "*.png"), ("jpeg files", "*.jpg"), ("all files", "*.*")))
-
-        working_dir = os.getcwd()
-        #age example texture
-        example_texture_path = "textures/m32_8k.png"
-        #texture to be modified
-        target_texture_path = file_path
-        warped_example_image, target_image, example_image = morph_images(Path(working_dir, example_texture_path), Path(target_texture_path))
-        Cm, Bh, skin, face, oxy_mask = extract_masks(warped_example_image)
+        self.target_texture_path = file_path
         if file_path:  # If a file was selected
             print(f"Selected image: {file_path}")
-            # Here you can call your morph_images and extract_masks functions
-            warped_example_image, target_image, example_image = morph_images(Path(example_texture_path), Path(file_path))
-            Cm, Bh, skin, face, oxy_mask = extract_masks(warped_example_image)
-            # Update the app's image attributes
-            self.image = target_image
-            self.mel_aged = Cm
-            self.oxy_aged = Bh
-            self.skin = skin
-            self.face = face
-            self.oxy_mask = oxy_mask
-            self.original_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB).astype(np.float32)
-            self.modified_image = target_image
-            self.load_images()
-            self.update_plot()  # This is just a placeholder for whatever update you need to do
+            self.load_new()
+    def load_example_image(self):
+        # Open the file dialog to select an image
+        file_path = filedialog.askopenfilename(title="Select an image",
+                                               filetypes=(("png files", "*.png"), ("jpeg files", "*.jpg"), ("all files", "*.*")))
+        self.example_texture_path = file_path
+        if file_path:  # If a file was selected
+            print(f"Selected image: {file_path}")
+            self.load_new()
 
     def create_gui(self):
         self.frame_sliders = ttk.Frame(self.root)
@@ -276,6 +282,9 @@ class SkinParameterAdjustmentApp:
         #add load image button
         load_image_button = ttk.Button(self.frame_buttons, text="Load New Image", command=self.load_new_image)
         load_image_button.pack(side=tk.LEFT, padx=5, pady=5)
+        #add load example image button
+        load_example_image_button = ttk.Button(self.frame_buttons, text="Load Example Image", command=self.load_example_image)
+        load_example_image_button.pack(side=tk.LEFT, padx=5, pady=5)
         # make window resizable
         self.root.resizable(True, True)
         #size window

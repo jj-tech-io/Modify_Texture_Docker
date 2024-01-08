@@ -52,7 +52,7 @@ def extract_masks(image):
 
 # apply masks and transformations to target's latent space
 def apply_transforms(target_image, mel_aged, oxy_aged, skin, face, oxy_mask):
-    app = SkinParameterAdjustmentApp(image=target_image, mel_aged=mel_aged, oxy_aged=oxy_aged,skin=skin,face=face, oxy_mask=oxy_mask, save_name=example_texture_path)
+    app = SkinParameterAdjustmentApp(image=target_image, mel_aged=mel_aged, oxy_aged=oxy_aged,skin=skin,face=face, oxy_mask=oxy_mask, save_name="recovered")
     app.run()
 
 if __name__ == '__main__':
