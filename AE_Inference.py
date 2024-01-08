@@ -42,10 +42,7 @@ except Exception as e:
     print(f"An error occurred: {e}")
     sys.exit(1)
 
-# # Use variables/functions directly from CONFIG, not CONFIG.CONFIG
-# encoder_path = CONFIG.ENCODER_PATH
-# decoder_path = CONFIG.DECODER_PATH
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+
 def reverse_gamma_correction(img):
     """Reverse gamma correction on an image."""
     return np.where(img > 0.04045, ((img + 0.055) / 1.055) ** 2.4, img / 12.92)
@@ -116,31 +113,18 @@ def get_masks(image):
     image = cv2.resize(image, (WIDTH, HEIGHT))
     parameter_maps, elapsed = encode(image)
     Cm = parameter_maps[:, 0].reshape(WIDTH, HEIGHT)
-    # normalize 0-1
-    print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)}")
     Cm = (Cm - np.min(Cm)) / (np.max(Cm) - np.min(Cm))
-    print(f"min Cm: {np.min(Cm)} max Cm: {np.max(Cm)}")
     Ch = parameter_maps[:, 1].reshape(WIDTH, HEIGHT)
-    # normalize 0-1
     Ch = (Ch - np.min(Ch)) / (np.max(Ch) - np.min(Ch))
-    print(f"min Ch: {np.min(Ch)} max Ch: {np.max(Ch)}")
     Bm = parameter_maps[:, 2].reshape(WIDTH, HEIGHT)
     Bm = (Bm - np.min(Bm)) / (np.max(Bm) - np.min(Bm))
-    print(f"min Bm: {np.min(Bm)} max Bm: {np.max(Bm)}")
     Bh = parameter_maps[:, 3].reshape(WIDTH, HEIGHT)
     Bh = (Bh - np.min(Bh)) / (np.max(Bh) - np.min(Bh))
-    print(f"min Bh: {np.min(Bh)} max Bh: {np.max(Bh)}")
     T = parameter_maps[:, 4].reshape(WIDTH, HEIGHT)
     T = (T - np.min(T)) / (np.max(T) - np.min(T))
-    # clip to 0-1
     Cm = np.clip(Cm, 0, 1)
-    # Cm = 1 - Cm
     Ch = np.clip(Ch, 0, 1)
-    # Ch = 1 - Ch
     Bm = np.clip(Bm, 0, 1)
-    # Bm = 1 - Bm
     Bh = np.clip(Bh, 0, 1)
-    # Bh = 1 - Bh
     T = np.clip(T, 0, 1)
-    # T = 1 - T
     return Cm, Ch, Bm, Bh, T

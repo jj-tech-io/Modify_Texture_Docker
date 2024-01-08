@@ -22,9 +22,17 @@ importlib.reload(AE_Inference)
 class SkinParameterAdjustmentApp:
     def __init__(self, image, mel_aged, oxy_aged, skin, face, oxy_mask, save_name="recovered"):
         self.save_name = save_name
-        self.skin = cv2.resize(skin, (512, 512))
-        self.face = cv2.resize(face, (512, 512))
-        self.oxy_mask = cv2.resize(oxy_mask, (512, 512))
+        try:
+            self.skin = cv2.resize(skin, (4096, 4096))
+            self.face = cv2.resize(face, (4096, 4096))
+            self.oxy_mask = cv2.resize(oxy_mask, (4096, 4096))
+            self.mel_aged = cv2.resize(mel_aged, (4096, 4096))
+            self.oxy_aged = cv2.resize(oxy_aged, (4096, 4096))
+            assert self.oxy_mask.shape == self.mel_aged.shape == self.oxy_aged.shape, "Error: Image shapes do not match"
+            assert np.isnan(self.oxy_aged).any() == False and np.isnan(self.mel_aged).any() == False and np.isnan(self.skin).any() == False and np.isnan(self.face).any() == False and np.isnan(self.oxy_mask).any() == False, "Error: NaN values in image"
+        except Exception as e:
+            print(f"Error: could not resize skin, face, or oxy_mask: {e}")
+            sys.exit()
         self.original_label = None
         self.modified_label = None
         self.encoder = None
@@ -32,8 +40,8 @@ class SkinParameterAdjustmentApp:
         self.image = image
         self.mel_aged = mel_aged
         self.oxy_aged = oxy_aged
-        self.WIDTH = 512
-        self.HEIGHT = 512
+        self.WIDTH = 4096
+        self.HEIGHT = 4096
         self.load_models()
         self.load_images()
         self.init_app()
@@ -79,8 +87,8 @@ class SkinParameterAdjustmentApp:
         oxy_aged = cv2.resize(oxy_aged, (self.WIDTH, self.HEIGHT))
         oxy_aged = cv2.bitwise_not(oxy_aged)
         oxy_aged = cv2.GaussianBlur(oxy_aged, (15, 15), 0)
-        oxy_aged = oxy_aged / np.max(np.abs(oxy_aged))
-        oxy_aged *= 0.5
+        # oxy_aged = np.abs(oxy_aged) / np.max(np.abs(oxy_aged))
+        oxy_aged *= 0.025
 
         mel_aged = mel_aged.reshape(-1, )
         oxy_aged = oxy_aged.reshape(-1, )
@@ -110,59 +118,7 @@ class SkinParameterAdjustmentApp:
         return slider
 
     def save_4k_image(self):
-        self.WIDTH = 4096
-        self.HEIGHT = 4096
-        self.load_images()
-        parameter_maps = self.parameter_maps_original_4k.copy()
-        age_coef = self.age_coef_slider.get()
-        scale_c_m = self.cm_slider.get()
-        scale_c_h = self.ch_slider.get()
-        scale_b_m = self.bm_slider.get()
-        scale_b_h = self.bh_slider.get()
-        scale_t = self.t_slider.get()
-        cm_mask_slider = self.cm_mask_slider.get()
-        bh_mask_slider = self.bh_mask_slider.get()
-        global_scaling_maps = self.global_scaling_maps_slider.get()
-        global_scaling_masks = self.global_scaling_masks_slider.get()
-        parameter_maps[:, 0] = age_mel(parameter_maps[:, 0], age_coef)
-        parameter_maps[:, 1] = age_hem(parameter_maps[:, 1], age_coef)
-        parameter_maps[:, 0] = scale_c_m* parameter_maps[:, 0]
-        parameter_maps[:, 1] = scale_c_h* parameter_maps[:, 1]
-        parameter_maps[:, 2] = scale_b_m*parameter_maps[:, 2]
-        parameter_maps[:, 3] = scale_b_h*parameter_maps[:, 3]
-        parameter_maps[:, 4] = scale_t*parameter_maps[:, 4]
-        cm_new =  (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 0]
-        parameter_maps[:, 0] = cm_new
-        self.oxy_mask = cv2.resize(self.oxy_mask, (self.WIDTH, self.HEIGHT))
-        parameter_maps[:, 3] = np.where(self.oxy_mask.reshape(-1) == 0, parameter_maps[:, 3], (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 3])
-        recovered, decode_time = decode(parameter_maps)
-        recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3))
-        recovered = (recovered * 255).clip(0, 255).astype(np.uint8)  # Ensure proper range and type
-        recovered = cv2.cvtColor(recovered, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
-
-        save_path = f"{self.save_name}.png"
-        try:
-            cv2.imwrite(save_path, recovered)
-            print(f"Saved {save_path}")
-        except Exception as e:
-            print(f"Error: could not save image {save_path}")
-            print(e)
-
-        #print all shapes
-        print(f"original_image.shape: {self.original_image.shape}")
-        print(f"modified_image.shape: {self.modified_image.shape}")
-        print(f"original_4k.shape: {self.original_4k.shape}")
-        print(f"modified_4k.shape: {self.modified_4k.shape}")
-        print(f"mel_aged.shape: {self.mel_aged.shape}")
-        print(f"oxy_aged.shape: {self.oxy_aged.shape}")
-        print(f"mel_aged_4k.shape: {self.mel_aged_4k.shape}")
-        print(f"oxy_aged_4k.shape: {self.oxy_aged_4k.shape}")
-        print(f"parameter_maps_original.shape: {self.parameter_maps_original.shape}")
-        self.WIDTH = 512
-        self.HEIGHT = 512
-        self.oxy_mask = cv2.resize(self.oxy_mask, (self.WIDTH, self.HEIGHT))
-
-        self.load_images()
+        self.update_images(self.original_image, self.modified_image, save=True)
 
     def update_plot(self, changed_slider=None):
         parameter_maps_original = self.parameter_maps_original.copy()
@@ -179,14 +135,26 @@ class SkinParameterAdjustmentApp:
         global_scaling_masks = self.global_scaling_masks_slider.get()
         parameter_maps[:, 0] = age_mel(parameter_maps[:, 0], age_coef)
         parameter_maps[:, 1] = age_hem(parameter_maps[:, 1], age_coef)
-        parameter_maps[:, 0] = scale_c_m* parameter_maps[:, 0]
-        parameter_maps[:, 1] = scale_c_h* parameter_maps[:, 1]
-        parameter_maps[:, 2] = scale_b_m*parameter_maps[:, 2]
-        parameter_maps[:, 3] = scale_b_h*parameter_maps[:, 3]
-        parameter_maps[:, 4] = scale_t*parameter_maps[:, 4]
+        parameter_maps[:, 0] = scale_c_m * parameter_maps[:, 0]
+        parameter_maps[:, 1] = scale_c_h * parameter_maps[:, 1]
+        parameter_maps[:, 2] = scale_b_m * parameter_maps[:, 2]
+        parameter_maps[:, 3] = scale_b_h * parameter_maps[:, 3]
+        parameter_maps[:, 4] = scale_t * parameter_maps[:, 4]
         cm_new =  (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 0]
         parameter_maps[:, 0] = cm_new
-        parameter_maps[:, 3] = np.where(self.oxy_mask.reshape(-1) == 0, parameter_maps[:, 3], (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 3])
+
+        #only apply mask to eyes and lips
+        print(f"shape skin {np.asarray(self.skin).shape}, shape face {np.asarray(self.face).shape}, shape oxy_aged {np.asarray(self.oxy_aged).shape}, shape parameter_maps {np.asarray(parameter_maps).shape}")
+        # parameter_maps[:, 1] = np.where(self.skin[:,:,0].reshape(-1) != 0, 0, (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1])
+        print(f"abs(bh_mask_slider * self.oxy_aged.reshape(-1)) = {bh_mask_slider * self.oxy_aged}")
+        try:
+
+            # bh_new = bh_mask_slider * self.oxy_aged.reshape(-1) + (1-bh_mask_slider)*parameter_maps[:, 3]
+            bh_new = np.where(self.oxy_mask.reshape(-1) != 0, parameter_maps[:, 3], (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 3])
+            parameter_maps[:, 3] = bh_new
+        except Exception as e:
+            print(f"Error: could not update bh_mask {e}")
+            sys.exit()
         recovered, decode_time = decode(parameter_maps)
         recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3)) * 255
         self.parameter_maps = parameter_maps
@@ -194,7 +162,7 @@ class SkinParameterAdjustmentApp:
         self.update_images(self.original_image, self.modified_image)
         return recovered
 
-    def update_images(self, original, modified):
+    def update_images(self, original, modified, save=False):
         if np.max(original) < 1:    
             plt.imshow(original)
             plt.show()
@@ -207,6 +175,9 @@ class SkinParameterAdjustmentApp:
         try:
             original_pil = Image.fromarray(np.uint8(original))
             modified_pil = Image.fromarray(np.uint8(modified))
+            if save:
+                save_path = f"{self.save_name}.png"
+                modified_pil.save(save_path)
         except:
             print(f"Error: could not convert original or modified to PIL images")
             sys.exit()
@@ -252,7 +223,6 @@ class SkinParameterAdjustmentApp:
         self.age_coef_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='age_coef'))
         self.global_scaling_maps_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='global_scaling_maps'))
         self.global_scaling_masks_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='global_scaling_masks'))
-
         # Correct the bindings to use the correct button release event and the slider name
         self.cm_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('cm'))
         self.ch_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot('ch'))
@@ -265,6 +235,8 @@ class SkinParameterAdjustmentApp:
 
         # make window resizable
         self.root.resizable(True, True)
+        #size window
+        self.root.geometry("700x700")
         self.update_plot()
 
     def run(self):

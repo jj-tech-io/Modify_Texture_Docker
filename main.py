@@ -4,7 +4,6 @@ from tkinter import *
 from tkinter.ttk import *
 import importlib
 import sys
-
 sys.path.append('morph')
 sys.path.append('AE_Inference')
 sys.path.append('transform_objects')
@@ -20,7 +19,6 @@ from segmentation import *
 importlib.reload(segmentation)
 importlib.reload(morph)
 importlib.reload(transform_objects)
-
 WIDTH = 4096
 HEIGHT = 4096
 
@@ -43,20 +41,12 @@ def morph_images(example_image_path, target_image_path):
         landmarks1, landmarks2)
     return warped_example_image, target_image, example_image
 
-# extract masks from source
 def extract_masks(image):
     Cm, Ch, Bm, Bh, T = get_masks(image)
     landmarks = get_landmarks(image)
     combined_mask, lips, eyes, nose, eye_bags, face,oxy_mask, landmark_object, av_skin_color = create_combined_mask(image)
     skin = threshold_face_skin_area(image,av_skin_color,mask=combined_mask)
-    #Cm and with combined mask
-    mask1 = np.where(combined_mask == 0, 0, Bm)
-    # Bh and with inverted combined mask
-    mask2 = np.where(combined_mask == 0, Bh, 0)
-    masks = [Cm, Ch, Bm, Bh, T, mask1, mask2]
-    for i in range(len(masks)):
-        masks[i] = (masks[i] - np.min(masks[i])) / (np.max(masks[i]) - np.min(masks[i]))
-        masks[i] = np.clip(masks[i], 0, 1)*0.25
+    oxy_mask = cv2.bitwise_not(oxy_mask)
     return Cm, Ch, skin, face, oxy_mask
 
 # apply masks and transformations to target's latent space
