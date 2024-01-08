@@ -4,7 +4,7 @@ from tkinter import *
 from tkinter.ttk import *
 import importlib
 import sys
-test = 1
+
 sys.path.append('morph')
 sys.path.append('AE_Inference')
 sys.path.append('transform_objects')
@@ -26,10 +26,8 @@ HEIGHT = 4096
 
 # morph the source image to the target image
 def morph_images(example_image_path, target_image_path):
-    # Read the images into NumPy arrays
     target_image = cv2.imread(target_image_path.as_posix())
     example_image = cv2.imread(example_image_path.as_posix())
-    # Check if the images are read correctly
     if example_image is None:
         print(f"Error: could not read source image {example_image_path}")
         sys.exit()
@@ -63,15 +61,15 @@ def extract_masks(image):
 
 # apply masks and transformations to target's latent space
 def apply_transforms(target_image, mel_aged, oxy_aged, skin, face, oxy_mask):
-    app = SkinParameterAdjustmentApp(image=target_image, mel_aged=mel_aged, oxy_aged=oxy_aged,skin=skin,face=face, oxy_mask=oxy_mask)
+    app = SkinParameterAdjustmentApp(image=target_image, mel_aged=mel_aged, oxy_aged=oxy_aged,skin=skin,face=face, oxy_mask=oxy_mask, save_name=example_texture_path)
     app.run()
 
 if __name__ == '__main__':
     working_dir = os.getcwd()
+    #age example texture
     example_texture_path = "textures/m32_8k.png"
-    target_texture_path = "textures/1_neutral.jpg"
+    #texture to be modified
     target_texture_path = "textures/m53_4k.png"
-    target_texture_path = Path(working_dir, target_texture_path)
-    warped_example_image, target_image, example_image = morph_images(Path(example_texture_path), Path(target_texture_path))
+    warped_example_image, target_image, example_image = morph_images(Path(working_dir, example_texture_path), Path(working_dir, target_texture_path))
     Cm, Bh, skin, face, oxy_mask = extract_masks(warped_example_image)
     apply_transforms(target_image, Cm, Bh, skin, face, oxy_mask)

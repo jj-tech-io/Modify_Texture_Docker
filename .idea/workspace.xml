@@ -5,13 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bae3b0b9-8822-4071-aea8-8ca0803da166" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Autoencoder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AE_Inference.py" beforeDir="false" afterPath="$PROJECT_DIR$/AE_Inference.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CONFIG.py" beforeDir="false" afterPath="$PROJECT_DIR$/CONFIG.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/generate_masks.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph.py" beforeDir="false" afterPath="$PROJECT_DIR$/morph.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transform.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/transform_latent.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/segmentation.py" beforeDir="false" afterPath="$PROJECT_DIR$/segmentation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/transform_objects.py" beforeDir="false" afterPath="$PROJECT_DIR$/transform_objects.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -40,9 +38,12 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 7
-}]]></component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
   <component name="ProjectId" id="2aR3Y11P18YoTG0XLUyfgD0omwW" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -55,8 +56,8 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/joeli/Dropbox/Code/Python Projects/Modify_Texture_Docker",
+    "git-widget-placeholder": "docker",
+    "last_opened_file_path": "C:/Users/joeli/Dropbox/Code/Python Projects/Texture_Dataset",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -169,6 +170,8 @@
       <option name="presentableId" value="Default" />
       <updated>1704267607842</updated>
       <workItem from="1704267608871" duration="7800000" />
+      <workItem from="1704670788228" duration="705000" />
+      <workItem from="1704681710499" duration="27000" />
     </task>
     <servers />
   </component>

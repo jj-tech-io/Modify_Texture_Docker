@@ -56,11 +56,7 @@ def gamma_correction(img):
 def encode(img):
     image = np.asarray(img).reshape(-1,3).astype('float32')
     if np.max(image) > 1:
-        print(f"max image {np.max(image)}")
-        print(f"min image {np.min(image)}")
         image = image / 255.0
-        print(f"max image {np.max(image)}")
-        print(f"min image {np.min(image)}")
     # pred_maps = encoder.predict(image)
     image = reverse_gamma_correction(image)
     start = time.time()
@@ -82,12 +78,8 @@ def decode(encoded):
     elapsed = end - start
     if np.max(recovered) > 2:
         #norm 0-1
-        print(f"max recovered {np.max(recovered)}")
-        print(f"min recovered {np.min(recovered)}")
         # recovered = (recovered - np.min(recovered)) / (np.max(recovered) - np.min(recovered))
         recovered = recovered / 255.0
-        print(f"max recovered {np.max(recovered)}")
-        print(f"min recovered {np.min(recovered)}")
         
     # recovered = np.clip(recovered, 0, 1)
     recovered = gamma_correction(recovered)

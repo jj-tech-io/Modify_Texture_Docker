@@ -10,6 +10,7 @@ import tensorflow as tf
 from PIL import Image, ImageTk
 from tensorflow.keras.models import load_model
 import CONFIG
+from pathlib import Path
 
 importlib.reload(CONFIG)
 sys.path.append(r"AE_Inference")
@@ -19,7 +20,8 @@ importlib.reload(AE_Inference)
 
 
 class SkinParameterAdjustmentApp:
-    def __init__(self, image, mel_aged, oxy_aged, skin, face, oxy_mask):
+    def __init__(self, image, mel_aged, oxy_aged, skin, face, oxy_mask, save_name="recovered"):
+        self.save_name = save_name
         self.skin = cv2.resize(skin, (512, 512))
         self.face = cv2.resize(face, (512, 512))
         self.oxy_mask = cv2.resize(oxy_mask, (512, 512))
@@ -111,7 +113,6 @@ class SkinParameterAdjustmentApp:
         self.WIDTH = 4096
         self.HEIGHT = 4096
         self.load_images()
-        parameter_maps_original = self.parameter_maps_original_4k.copy()
         parameter_maps = self.parameter_maps_original_4k.copy()
         age_coef = self.age_coef_slider.get()
         scale_c_m = self.cm_slider.get()
@@ -132,14 +133,35 @@ class SkinParameterAdjustmentApp:
         parameter_maps[:, 4] = scale_t*parameter_maps[:, 4]
         cm_new =  (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 0]
         parameter_maps[:, 0] = cm_new
-        parameter_maps[:, 1] = (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1]
-
+        self.oxy_mask = cv2.resize(self.oxy_mask, (self.WIDTH, self.HEIGHT))
+        parameter_maps[:, 3] = np.where(self.oxy_mask.reshape(-1) == 0, parameter_maps[:, 3], (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 3])
         recovered, decode_time = decode(parameter_maps)
-        recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3)) * 255
+        recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3))
+        recovered = (recovered * 255).clip(0, 255).astype(np.uint8)  # Ensure proper range and type
+        recovered = cv2.cvtColor(recovered, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
 
-        cv2.imwrite(r"modified/modified.png", cv2.cvtColor(recovered, cv2.COLOR_BGR2RGB))
+        save_path = f"{self.save_name}.png"
+        try:
+            cv2.imwrite(save_path, recovered)
+            print(f"Saved {save_path}")
+        except Exception as e:
+            print(f"Error: could not save image {save_path}")
+            print(e)
+
+        #print all shapes
+        print(f"original_image.shape: {self.original_image.shape}")
+        print(f"modified_image.shape: {self.modified_image.shape}")
+        print(f"original_4k.shape: {self.original_4k.shape}")
+        print(f"modified_4k.shape: {self.modified_4k.shape}")
+        print(f"mel_aged.shape: {self.mel_aged.shape}")
+        print(f"oxy_aged.shape: {self.oxy_aged.shape}")
+        print(f"mel_aged_4k.shape: {self.mel_aged_4k.shape}")
+        print(f"oxy_aged_4k.shape: {self.oxy_aged_4k.shape}")
+        print(f"parameter_maps_original.shape: {self.parameter_maps_original.shape}")
         self.WIDTH = 512
         self.HEIGHT = 512
+        self.oxy_mask = cv2.resize(self.oxy_mask, (self.WIDTH, self.HEIGHT))
+
         self.load_images()
 
     def update_plot(self, changed_slider=None):
@@ -162,25 +184,14 @@ class SkinParameterAdjustmentApp:
         parameter_maps[:, 2] = scale_b_m*parameter_maps[:, 2]
         parameter_maps[:, 3] = scale_b_h*parameter_maps[:, 3]
         parameter_maps[:, 4] = scale_t*parameter_maps[:, 4]
-        if changed_slider == 'cm_mask':
-            print(f"cm_mask: {cm_mask_slider}")
         cm_new =  (cm_mask_slider * self.mel_aged.reshape(-1)) + (1 - cm_mask_slider) * parameter_maps[:, 0]
         parameter_maps[:, 0] = cm_new
-        if changed_slider == 'bh_mask':
-            print(f"bh_mask: {bh_mask_slider}")
-        # parameter_maps[:, 1] = (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1]
-        #only apply mask to eyes and lips
-        # print(f"shape skin {self.skin.shape}, shape face {self.face.shape}, shape bh_mask {bh_mask_slider.shape}, shape oxy_aged {self.oxy_aged.shape}, shape parameter_maps {parameter_maps.shape}")
-        print(f"shape skin {np.asarray(self.skin).shape}, shape face {np.asarray(self.face).shape}, shape oxy_aged {np.asarray(self.oxy_aged).shape}, shape parameter_maps {np.asarray(parameter_maps).shape}")
-        # parameter_maps[:, 1] = np.where(self.skin[:,:,0].reshape(-1) != 0, 0, (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 1])
         parameter_maps[:, 3] = np.where(self.oxy_mask.reshape(-1) == 0, parameter_maps[:, 3], (bh_mask_slider * self.oxy_aged.reshape(-1)) + parameter_maps[:, 3])
-
         recovered, decode_time = decode(parameter_maps)
         recovered = np.asarray(recovered).reshape((self.WIDTH, self.HEIGHT, 3)) * 255
         self.parameter_maps = parameter_maps
         self.modified_image = recovered
         self.update_images(self.original_image, self.modified_image)
-
         return recovered
 
     def update_images(self, original, modified):
@@ -226,7 +237,7 @@ class SkinParameterAdjustmentApp:
         self.frame_buttons.pack(side=tk.BOTTOM, fill=tk.X, expand=False)
         self.frame_images = ttk.Frame(self.root)
         self.frame_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.1, 0.0)
+        self.age_coef_slider = self.create_slider(self.frame_sliders, "Age(decades):", 0, 10, 0.1,2.0)
         self.global_scaling_maps_slider = self.create_slider(self.frame_sliders, "Map(s):", 0, 2, 0.1, 1.0)
         self.global_scaling_masks_slider = self.create_slider(self.frame_sliders, "Mask(s):", 0, 2, 0.1, 1.0)
         self.cm_slider = self.create_slider(self.frame_sliders, "Cm:", 0, 2, 0.1, 1)
@@ -234,8 +245,8 @@ class SkinParameterAdjustmentApp:
         self.bm_slider = self.create_slider(self.frame_sliders, "Bm:", 0, 2, 0.1, 1)
         self.bh_slider = self.create_slider(self.frame_sliders, "Bh:", 0, 2, 0.1, 1)
         self.t_slider = self.create_slider(self.frame_sliders, "T:", 0, 2, 0.1, 1)
-        self.cm_mask_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", -1, 1, 0.1, 0)
-        self.bh_mask_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", -1, 1, 0.1, 0)
+        self.cm_mask_slider = self.create_slider(self.frame_sliders, "Melanin Mask:", -1, 1, 0.1, 0.6)
+        self.bh_mask_slider = self.create_slider(self.frame_sliders, "Oxy-Hb Mask:", -1, 1, 0.1, 0.1)
         self.save_button = ttk.Button(self.frame_buttons, text="Save 4K Image", command=self.save_4k_image)
         self.save_button.pack(side=tk.RIGHT, padx=5, pady=5)
         self.age_coef_slider.bind("<ButtonRelease-1>", lambda event: self.update_plot(changed_slider='age_coef'))

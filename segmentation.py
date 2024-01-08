@@ -451,8 +451,9 @@ def create_combined_mask(image):
 
          #dilate eyes
         kernel = np.ones((25,25),np.uint8)
-        eyes = cv2.dilate(eyes,kernel,iterations = 3)
+        eyes = cv2.dilate(eyes,kernel,iterations = 6)
         eyes = cv2.erode(eyes,kernel,iterations = 3)
+        
 
         nose = generate_mask(image, face_landmarks, draw_lines, NOSTRILS)
         #dilate nose
